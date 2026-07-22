@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block title %}Collections — Cesar Garza{% endblock %}
+{% block content %}
+  <header class="page-heading measure-wide">
+    <p class="eyebrow">Gatherings</p>
+    <h1>Collections</h1>
+    <p class="intro-copy">Poems held together by a season, place, or shared attention.</p>
+  </header>
+  <section class="collection-list" aria-label="Poetry collections">
+    {% for collection in collections %}
+      <article>
+        <h2><a href="{% url 'collection_detail' collection.slug %}">{{ collection.name }}</a></h2>
+        {% if collection.description %}<div class="rich-text">{{ collection.description|richtext }}</div>{% endif %}
+      </article>
+    {% empty %}
+      <div class="empty-state"><p>Collections will appear as the archive grows.</p></div>
+    {% endfor %}
+  </section>
+{% endblock %}

@@ -1,0 +1,51 @@
+[project]
+name = "cesar-garza-poetry"
+version = "0.1.0"
+description = "A minimalist Wagtail poetry publication"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "boto3==1.40.32",
+  "dj-database-url==3.0.1",
+  "django>=5.2,<6.0",
+  "django-axes==8.0.0",
+  "django-storages[s3]==1.14.6",
+  "django-treebeard>=4.7,<5.0",
+  "gunicorn==23.0.0",
+  "psycopg[binary]==3.2.10",
+  "pyjwt[crypto]==2.10.1",
+  "wagtail==7.4.2",
+  "whitenoise==6.9.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==8.4.2",
+  "pytest-django==4.11.1",
+  "pytest-playwright==0.7.1",
+  "ruff==0.12.12",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "poetry_site.settings"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+markers = [
+  "browser: tests that require a Playwright browser",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["poems/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "DJ"]
+ignore = ["DJ001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

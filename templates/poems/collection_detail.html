@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block title %}{{ collection.name }} — Cesar Garza{% endblock %}
+{% block content %}
+  <header class="page-heading measure-wide">
+    <p class="eyebrow">Collection</p>
+    <h1>{{ collection.name }}</h1>
+    {% if collection.description %}<div class="rich-text intro-copy">{{ collection.description|richtext }}</div>{% endif %}
+  </header>
+  <section class="archive" aria-label="Poems in {{ collection.name }}">
+    <div class="poem-grid">
+      {% for poem in poems %}
+        {% include "poems/includes/poem_card.html" with poem=poem %}
+      {% empty %}
+        <div class="empty-state"><p>This collection is waiting for its first published poem.</p></div>
+      {% endfor %}
+    </div>
+    {% include "poems/includes/pagination.html" with items=poems %}
+  </section>
+{% endblock %}

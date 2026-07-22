@@ -1,0 +1,276 @@
+name: Verify and publish image
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: poetry-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  UV_VERSION: "0.8.17"
+  DJANGO_DEBUG: "true"
+  DJANGO_SECRET_KEY: ci-only-not-for-runtime
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+  DATABASE_URL: postgresql://poetry:poetry@localhost:5432/poetry
+  DATABASE_SSL_REQUIRE: "false"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: poetry
+          POSTGRES_USER: poetry
+          POSTGRES_PASSWORD: poetry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U poetry -d poetry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --frozen
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Apply schema for system checks
+        run: uv run python manage.py migrate --noinput
+
+      - name: Django system check
+        run: uv run python manage.py check
+
+      - name: Verify migrations are current
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Run PostgreSQL-backed tests
+        run: uv run pytest -m "not browser"
+
+      - name: Verify static asset collection
+        env:
+          DJANGO_DEBUG: "false"
+          AWS_STORAGE_BUCKET_NAME: build-only
+          AWS_ACCESS_KEY_ID: build-only
+          AWS_SECRET_ACCESS_KEY: build-only
+          AWS_S3_CUSTOM_DOMAIN: build-only.invalid
+          AWS_S3_ENDPOINT_URL: https://build-only.invalid
+          AWS_S3_REGION_NAME: nyc3
+          CLOUDFLARE_ACCESS_REQUIRED: "false"
+        run: uv run python manage.py collectstatic --noinput --clear
+
+  browser:
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: poetry
+          POSTGRES_USER: poetry
+          POSTGRES_PASSWORD: poetry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U poetry -d poetry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --frozen
+
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run browser and accessibility behavior tests
+        run: uv run pytest -m browser --browser chromium
+
+  container:
+    needs: [verify, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Build production image
+        run: docker build --tag poetry:verify .
+
+  publish:
+    needs: [verify, browser, container]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: default
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_tag: ${{ steps.image.outputs.tag }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Resolve immutable image tag
+        id: image
+        run: echo "tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch registry credentials
+        id: broker
+        uses: cesaregarza/.github/actions/fetch-broker-credentials@98c79f6276765153957196e64af75280a19d4421
+        with:
+          broker-url: https://credentials.garz.ai
+          audience: https://credentials.garz.ai/v1
+          capability: digitalocean-registry-write
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to DigitalOcean Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ fromJson(steps.broker.outputs.secrets-json).DIGITALOCEAN_REGISTRY_TOKEN }}
+          password: ${{ fromJson(steps.broker.outputs.secrets-json).DIGITALOCEAN_REGISTRY_TOKEN }}
+
+      - name: Build and push immutable image
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: registry.digitalocean.com/sendouq/poetry:${{ steps.image.outputs.tag }}
+
+  update_gitops:
+    needs: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: default
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TAG: ${{ needs.publish.outputs.image_tag }}
+      DIGEST: ${{ needs.publish.outputs.image_digest }}
+      BRANCH: bot/poetry-image-${{ github.run_id }}
+    steps:
+      - name: Fetch GarzAICluster credentials
+        id: broker
+        uses: cesaregarza/.github/actions/fetch-broker-credentials@98c79f6276765153957196e64af75280a19d4421
+        with:
+          broker-url: https://credentials.garz.ai
+          audience: https://credentials.garz.ai/v1
+          capability: config-repo-write
+
+      - name: Checkout GarzAICluster
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: cesaregarza/GarzAICluster
+          token: ${{ fromJson(steps.broker.outputs.secrets-json).GARZAI_CLUSTER_GITHUB_TOKEN }}
+          path: config-repo
+          ref: main
+
+      - name: Pin poetry image
+        id: update
+        working-directory: config-repo
+        env:
+          BOT_NAME: poetry-image-bot
+          BOT_EMAIL: sre+bot@cegarza.com
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git checkout -b "$BRANCH"
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("helm/poetry/values.yaml")
+          lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+          in_image = False
+          replaced = False
+          for index, line in enumerate(lines):
+              if line.startswith("image:"):
+                  in_image = True
+                  continue
+              if in_image and line and not line[0].isspace():
+                  break
+              if in_image and line.startswith("  tag:"):
+                  lines[index] = f'  tag: "{os.environ["TAG"]}"\n'
+                  replaced = True
+                  break
+          if not replaced:
+              raise SystemExit("helm/poetry/values.yaml has no image.tag field")
+          path.write_text("".join(lines), encoding="utf-8")
+          PY
+
+          git add helm/poetry/values.yaml
+          if git diff --cached --quiet; then
+            echo "skip_pr=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "chore: pin poetry image ${TAG}"
+          git push --set-upstream origin "$BRANCH"
+          echo "skip_pr=false" >> "$GITHUB_OUTPUT"
+
+      - name: Open GarzAICluster image-pin PR
+        if: steps.update.outputs.skip_pr != 'true'
+        working-directory: config-repo
+        env:
+          GH_TOKEN: ${{ fromJson(steps.broker.outputs.secrets-json).GARZAI_CLUSTER_GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "[bot] Pin poetry image ${TAG}" \
+            --body "Source: ${GITHUB_REPOSITORY}@${GITHUB_SHA}
+
+          Image: \`registry.digitalocean.com/sendouq/poetry:${TAG}\`
+          Digest: \`${DIGEST}\`"
