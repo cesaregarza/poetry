@@ -57,4 +57,3 @@ Rotate PostgreSQL, Spaces, Django, and registry credentials independently. Write
 only SOPS/age ciphertext to GarzAICluster, reconcile secrets before restarting
 the Deployment, and retain the previous encrypted Git revision long enough for a
 bounded rollback. A Django secret-key rotation invalidates sessions by design.
-

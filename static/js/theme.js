@@ -49,4 +49,3 @@
   if (media.addEventListener) media.addEventListener("change", followSystem);
   else media.addListener(followSystem);
 })();
-
