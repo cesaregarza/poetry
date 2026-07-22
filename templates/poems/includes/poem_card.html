@@ -1,0 +1,11 @@
+{% load wagtailcore_tags %}
+<article class="poem-card">
+  <p class="poem-card-meta">
+    {% if poem.collection %}<a href="{% url 'collection_detail' poem.collection.slug %}">{{ poem.collection.name }}</a>{% else %}Poem{% endif %}
+    {% if poem.publication_date %}<span aria-hidden="true">·</span> <time datetime="{{ poem.publication_date|date:'Y-m-d' }}">{{ poem.publication_date|date:"Y" }}</time>{% endif %}
+  </p>
+  <h3><a href="{% pageurl poem %}">{{ poem.title }}</a></h3>
+  {% if poem.listing_description %}<p>{{ poem.listing_description }}</p>{% endif %}
+  <a class="read-link" href="{% pageurl poem %}" aria-label="Read {{ poem.title }}">Read poem <span aria-hidden="true">→</span></a>
+</article>
+

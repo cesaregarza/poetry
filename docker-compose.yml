@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: poetry
+      POSTGRES_USER: poetry
+      POSTGRES_PASSWORD: poetry
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poetry -d poetry"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: local-development-only
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,[::1]
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000
+      DATABASE_URL: postgresql://poetry:poetry@db:5432/poetry
+      DATABASE_SSL_REQUIRE: "false"
+      SITE_HOSTNAME: localhost
+      WAGTAILADMIN_BASE_URL: http://localhost:8000
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        python manage.py bootstrap_site --hostname localhost --port 8000 &&
+        gunicorn poetry_site.wsgi:application --bind 0.0.0.0:8000
+        --workers 2 --threads 2 --worker-tmp-dir /tmp
+        --access-logfile - --error-logfile -
+    ports:
+      - "8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - local-media:/app/media
+
+volumes:
+  postgres-data:
+  local-media:
+

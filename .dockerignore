@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+.env
+db.sqlite3
+media
+staticfiles
+playwright-report
+test-results
+

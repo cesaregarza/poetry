@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags wagtailimages_tags %}
+
+{% block title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }}{% endif %} — Cesar Garza{% endblock %}
+{% block description %}{% if page.search_description %}{{ page.search_description }}{% elif page.listing_description %}{{ page.listing_description }}{% else %}A poem by Cesar Garza.{% endif %}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block social_image %}
+  {% if page.social_image %}
+    {% image page.social_image fill-1200x630 as poem_social %}
+    <meta property="og:image" content="{{ poem_social.full_url }}">
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <article class="poem-page">
+    <header class="poem-header">
+      {% if page.collection %}<a class="eyebrow" href="{% url 'collection_detail' page.collection.slug %}">{{ page.collection.name }}</a>{% else %}<p class="eyebrow">Poem</p>{% endif %}
+      <h1>{{ page.title }}</h1>
+      {% if page.dedication %}<p class="dedication">for {{ page.dedication }}</p>{% endif %}
+      {% if page.publication_date %}<time datetime="{{ page.publication_date|date:'Y-m-d' }}">{{ page.publication_date|date:"F j, Y" }}</time>{% endif %}
+    </header>
+
+    {% if page.epigraph %}
+      <figure class="epigraph">
+        <blockquote>{{ page.epigraph }}</blockquote>
+        {% if page.epigraph_attribution %}<figcaption>— {{ page.epigraph_attribution }}</figcaption>{% endif %}
+      </figure>
+    {% endif %}
+
+    <div class="poem-text">{{ page.poem_body }}</div>
+
+    {% if page.notes or page.themes.all %}
+      <footer class="poem-notes">
+        {% if page.notes %}<div class="rich-text">{{ page.notes|richtext }}</div>{% endif %}
+        {% if page.themes.all %}
+          <ul class="tag-list" aria-label="Themes">
+            {% for theme in page.themes.all %}
+              <li><a href="{% url 'theme_detail' theme.slug %}">{{ theme.name }}</a></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </footer>
+    {% endif %}
+
+    <nav class="poem-return" aria-label="Back to archive">
+      <a href="/poems/"><span aria-hidden="true">←</span> All poems</a>
+    </nav>
+  </article>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% load static wagtailcore_tags wagtailimages_tags %}
+<!doctype html>
+<html lang="en" data-theme-pending>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="{% static 'js/theme.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/site.css' %}">
+    <link rel="alternate" type="application/rss+xml" title="Cesar Garza — Poetry" href="{% url 'poem_feed' %}">
+    <meta name="theme-color" content="#f5f0e7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#171514" media="(prefers-color-scheme: dark)">
+    {% with site_settings=settings.poems.PoetrySiteSettings %}
+      <title>{% block title %}{% if page and page.seo_title %}{{ page.seo_title }}{% elif page %}{{ page.title }}{% else %}{{ site_settings.site_title }}{% endif %}{% endblock %}</title>
+      <meta name="description" content="{% block description %}{% if page and page.search_description %}{{ page.search_description }}{% else %}Poetry by {{ site_settings.author_name }}.{% endif %}{% endblock %}">
+      <meta property="og:site_name" content="{{ site_settings.site_title }}">
+      <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+      <meta property="og:title" content="{% block og_title %}{% if page %}{{ page.title }}{% else %}{{ site_settings.site_title }}{% endif %}{% endblock %}">
+      {% block social_image %}
+        {% if site_settings.default_social_image %}
+          {% image site_settings.default_social_image fill-1200x630 as default_social %}
+          <meta property="og:image" content="{{ default_social.full_url }}">
+        {% endif %}
+      {% endblock %}
+    {% endwith %}
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="/" aria-label="Cesar Garza Poetry, home">
+        <span>Cesar Garza</span>
+        <span class="wordmark-mark">Poetry</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/poems/">Poems</a>
+        <a href="{% url 'collection_index' %}">Collections</a>
+        <a href="/about/">About</a>
+        <a href="{% url 'search' %}">Search</a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">
+          <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+          <span data-theme-label>Use dark theme</span>
+        </button>
+      </nav>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      {% with site_settings=settings.poems.PoetrySiteSettings %}
+        <p>© {% now "Y" %} {{ site_settings.author_name }}</p>
+        <nav aria-label="Footer navigation">
+          <a href="{% url 'poem_feed' %}">RSS</a>
+          {% if site_settings.website_url %}<a href="{{ site_settings.website_url }}" rel="me">Website</a>{% endif %}
+          {% if site_settings.mastodon_url %}<a href="{{ site_settings.mastodon_url }}" rel="me">Mastodon</a>{% endif %}
+          {% if site_settings.instagram_url %}<a href="{{ site_settings.instagram_url }}" rel="me">Instagram</a>{% endif %}
+        </nav>
+      {% endwith %}
+    </footer>
+  </body>
+</html>

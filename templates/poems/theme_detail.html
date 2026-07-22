@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}{{ theme.name }} — Themes — Cesar Garza{% endblock %}
+{% block content %}
+  <header class="page-heading measure-wide">
+    <p class="eyebrow">Theme</p>
+    <h1>{{ theme.name }}</h1>
+  </header>
+  <section class="archive" aria-label="Poems about {{ theme.name }}">
+    <div class="poem-grid">
+      {% for poem in poems %}
+        {% include "poems/includes/poem_card.html" with poem=poem %}
+      {% empty %}
+        <div class="empty-state"><p>No published poems carry this theme yet.</p></div>
+      {% endfor %}
+    </div>
+    {% include "poems/includes/pagination.html" with items=poems %}
+  </section>
+{% endblock %}
+

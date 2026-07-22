@@ -1,0 +1,669 @@
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../fonts/SourceSerif4Variable-Roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --paper: #f5f0e7;
+  --paper-raised: #fbf8f2;
+  --ink: #241f1b;
+  --muted: #685b52;
+  --accent: #7d3043;
+  --accent-hover: #5f1f30;
+  --line: #d7cbbd;
+  --focus: #245b78;
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --page-width: 76rem;
+  --measure: 42rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #171514;
+  --paper-raised: #1f1c1a;
+  --ink: #eee7dc;
+  --muted: #bdb0a3;
+  --accent: #d78da0;
+  --accent-hover: #efafbf;
+  --line: #423a35;
+  --focus: #85c9eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --paper: #171514;
+    --paper-raised: #1f1c1a;
+    --ink: #eee7dc;
+    --muted: #bdb0a3;
+    --accent: #d78da0;
+    --accent-hover: #efafbf;
+    --line: #423a35;
+    --focus: #85c9eb;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 0.98rem + 0.22vw, 1.2rem);
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 0.075em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 20;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-180%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.site-header,
+.site-footer,
+main {
+  width: min(calc(100% - 2.5rem), var(--page-width));
+  margin-inline: auto;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-block: 2rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--sans);
+  font-size: 0.84rem;
+  letter-spacing: 0.035em;
+}
+
+.wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.08;
+  text-decoration: none;
+}
+
+.wordmark-mark {
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.site-nav,
+.site-footer nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.35rem;
+}
+
+.site-nav a,
+.site-footer a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.theme-toggle-icon {
+  font-size: 1.1rem;
+}
+
+main {
+  min-height: 65vh;
+  padding-block: clamp(4rem, 9vw, 8rem);
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+.measure-wide {
+  max-width: 55rem;
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 0.73rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.08;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 7.4rem);
+  font-weight: 350;
+  letter-spacing: -0.045em;
+}
+
+h2 {
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+  font-weight: 450;
+}
+
+.home-intro {
+  padding-bottom: clamp(5rem, 10vw, 10rem);
+}
+
+.home-intro h1 {
+  max-width: 12ch;
+}
+
+.intro-copy {
+  max-width: 38rem;
+  margin-top: 2.25rem;
+  color: var(--muted);
+  font-size: clamp(1.15rem, 1rem + 0.5vw, 1.48rem);
+}
+
+.rich-text > :first-child {
+  margin-top: 0;
+}
+
+.rich-text > :last-child {
+  margin-bottom: 0;
+}
+
+.listing-section + .listing-section {
+  margin-top: clamp(5rem, 10vw, 9rem);
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.section-heading h2 {
+  margin: 0 0 0.8rem;
+}
+
+.section-heading > a,
+.read-link,
+.poem-return a {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.poem-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-block: 1px solid var(--line);
+}
+
+.poem-card {
+  display: flex;
+  min-height: 20rem;
+  flex-direction: column;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  background: var(--paper);
+}
+
+.poem-card-meta {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.69rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.poem-card h3 {
+  margin: 2.1rem 0 1rem;
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  font-weight: 430;
+}
+
+.poem-card h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.poem-card > p:not(.poem-card-meta) {
+  margin: 0 0 2rem;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.read-link {
+  margin-top: auto;
+}
+
+.empty-state {
+  max-width: 40rem;
+  padding: clamp(2rem, 5vw, 4rem);
+  border-left: 2px solid var(--accent);
+  background: var(--paper-raised);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.page-heading {
+  margin-bottom: clamp(4rem, 8vw, 7rem);
+}
+
+.page-heading h1 {
+  font-size: clamp(3.5rem, 10vw, 8rem);
+}
+
+.filter-form,
+.search-form > div {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.filter-form > div,
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-grow,
+.search-form input {
+  flex: 1;
+}
+
+label {
+  font-family: var(--sans);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+input,
+select {
+  min-height: 3.2rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.button {
+  min-height: 3.2rem;
+  padding: 0.6rem 1.3rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--accent-hover);
+}
+
+.pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 3rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+}
+
+.pagination > :last-child {
+  justify-self: end;
+}
+
+.poem-page {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.poem-header {
+  max-width: 48rem;
+  margin-bottom: clamp(4.5rem, 10vw, 9rem);
+}
+
+.poem-header h1 {
+  margin-bottom: 1.5rem;
+}
+
+.poem-header time,
+.dedication {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.epigraph {
+  max-width: 34rem;
+  margin: 0 0 clamp(4rem, 8vw, 7rem) min(8vw, 7rem);
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.epigraph blockquote {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.epigraph figcaption {
+  margin-top: 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+}
+
+.poem-text {
+  max-width: 52rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+  font-size: clamp(1.15rem, 1.05rem + 0.42vw, 1.48rem);
+  line-height: 1.78;
+}
+
+.poem-notes {
+  max-width: 44rem;
+  margin-top: clamp(5rem, 10vw, 9rem);
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+}
+
+.tag-list a {
+  display: block;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.poem-return {
+  margin-top: clamp(5rem, 12vw, 10rem);
+}
+
+.prose h2,
+.prose h3 {
+  margin-top: 2.5em;
+}
+
+.collection-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-block: 1px solid var(--line);
+}
+
+.collection-list > article {
+  min-height: 14rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: var(--paper);
+}
+
+.collection-list h2 {
+  margin-top: 0;
+}
+
+.collection-list h2 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.results-summary {
+  margin-bottom: 2rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-block: 2rem 3rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .site-header {
+    align-items: flex-start;
+  }
+
+  .site-nav {
+    justify-content: flex-end;
+  }
+
+  .poem-grid,
+  .collection-list {
+    grid-template-columns: 1fr;
+  }
+
+  .poem-card {
+    min-height: 16rem;
+  }
+
+  .filter-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-header,
+  .site-footer,
+  main {
+    width: min(calc(100% - 1.5rem), var(--page-width));
+  }
+
+  .site-header,
+  .site-footer {
+    flex-direction: column;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+  }
+
+  .theme-toggle [data-theme-label] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .epigraph {
+    margin-left: 0;
+  }
+
+  .search-form > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    --paper: #fff;
+    --ink: #000;
+    --muted: #333;
+    --line: #bbb;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+
+  .site-header,
+  .site-footer,
+  .poem-return,
+  .theme-toggle,
+  .skip-link {
+    display: none !important;
+  }
+
+  main,
+  .poem-page {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .poem-header {
+    margin-bottom: 2.5rem;
+  }
+
+  .poem-text {
+    max-width: none;
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+}

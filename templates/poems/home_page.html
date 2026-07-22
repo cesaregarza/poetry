@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+  <section class="home-intro measure-wide" aria-labelledby="home-heading">
+    {% with site_settings=settings.poems.PoetrySiteSettings %}
+      <p class="eyebrow">Poetry by {{ site_settings.author_name }}</p>
+      <h1 id="home-heading">Words for the<br>quiet hours.</h1>
+      <div class="intro-copy rich-text">{{ site_settings.introduction|richtext }}</div>
+    {% endwith %}
+  </section>
+
+  {% if featured_poems %}
+    <section class="listing-section" aria-labelledby="featured-heading">
+      <div class="section-heading">
+        <h2 id="featured-heading">Featured</h2>
+        <a href="/poems/">All poems <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="poem-grid">
+        {% for poem in featured_poems %}
+          {% include "poems/includes/poem_card.html" with poem=poem %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="listing-section" aria-labelledby="latest-heading">
+    <div class="section-heading">
+      <h2 id="latest-heading">Latest poems</h2>
+      {% if latest_poems %}<a href="/poems/">Browse the archive <span aria-hidden="true">→</span></a>{% endif %}
+    </div>
+    {% if latest_poems %}
+      <div class="poem-grid">
+        {% for poem in latest_poems %}
+          {% include "poems/includes/poem_card.html" with poem=poem %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>The first poem is still finding its shape.</p>
+        <p>Please return soon.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
+

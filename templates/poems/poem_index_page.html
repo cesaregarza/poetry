@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load wagtailcore_tags %}
+
+{% block content %}
+  <header class="page-heading measure-wide">
+    <p class="eyebrow">Archive</p>
+    <h1>{{ page.title }}</h1>
+    {% if page.intro %}<div class="rich-text intro-copy">{{ page.intro|richtext }}</div>{% endif %}
+  </header>
+
+  <section class="archive" aria-label="Poem archive">
+    <form class="filter-form" method="get">
+      <div class="field-grow">
+        <label for="archive-query">Search poems</label>
+        <input id="archive-query" name="q" type="search" value="{{ query }}" placeholder="A title, line, or word">
+      </div>
+      <div>
+        <label for="archive-collection">Collection</label>
+        <select id="archive-collection" name="collection">
+          <option value="">All collections</option>
+          {% for collection in collections %}
+            <option value="{{ collection.slug }}"{% if selected_collection == collection.slug %} selected{% endif %}>{{ collection.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="button" type="submit">Apply</button>
+    </form>
+
+    <div class="poem-grid">
+      {% for poem in poems %}
+        {% include "poems/includes/poem_card.html" with poem=poem %}
+      {% empty %}
+        <div class="empty-state">
+          {% if query or selected_collection or selected_theme %}
+            <p>No poems match these filters.</p>
+          {% else %}
+            <p>The archive is waiting for its first published poem.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% include "poems/includes/pagination.html" with items=poems %}
+  </section>
+{% endblock %}

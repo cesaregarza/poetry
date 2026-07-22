@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Search — Cesar Garza{% endblock %}
+{% block content %}
+  <header class="page-heading measure-wide">
+    <p class="eyebrow">Find a poem</p>
+    <h1>Search</h1>
+  </header>
+  <section class="archive" aria-label="Search poems">
+    <form class="search-form" method="get" role="search">
+      <label for="site-search">Title, phrase, or word</label>
+      <div>
+        <input id="site-search" name="q" type="search" value="{{ query }}" required autofocus>
+        <button class="button" type="submit">Search</button>
+      </div>
+    </form>
+    {% if query %}
+      <p class="results-summary">Results for “{{ query }}”</p>
+      <div class="poem-grid">
+        {% for poem in poems %}
+          {% include "poems/includes/poem_card.html" with poem=poem %}
+        {% empty %}
+          <div class="empty-state"><p>No poems found. Try another word or phrase.</p></div>
+        {% endfor %}
+      </div>
+      {% include "poems/includes/pagination.html" with items=poems %}
+    {% endif %}
+  </section>
+{% endblock %}
+
