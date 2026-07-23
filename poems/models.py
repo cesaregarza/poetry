@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import F
+from django.db.models.functions import Cast, Coalesce
 from django.utils.text import slugify
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey
@@ -238,10 +238,19 @@ class AboutPage(Page):
 
 
 def live_poems():
+    effective_date = Coalesce(
+        "display_date",
+        Cast("first_published_at", output_field=models.DateField()),
+        output_field=models.DateField(),
+    )
     return (
         PoemPage.objects.live()
         .public()
         .select_related("collection")
         .prefetch_related("themes")
-        .order_by(F("display_date").desc(nulls_last=True), "-first_published_at", "-pk")
+        .order_by(
+            effective_date.desc(nulls_last=True),
+            models.F("first_published_at").desc(nulls_last=True),
+            "-pk",
+        )
     )

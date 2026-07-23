@@ -1,5 +1,5 @@
 import importlib
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -12,7 +12,7 @@ from django.urls import clear_url_caches, resolve
 from wagtail.models import GroupPagePermission, Page, Site, get_default_page_content_type
 from wagtail.permission_policies.pages import PagePermissionPolicy
 
-from poems.models import AboutPage, Collection, HomePage, PoemIndexPage, PoemPage
+from poems.models import AboutPage, Collection, HomePage, PoemIndexPage, PoemPage, live_poems
 
 pytestmark = pytest.mark.django_db
 
@@ -74,6 +74,86 @@ def test_draft_is_not_public_and_owner_is_retained(client, site_tree):
     archive = client.get("/poems/").content.decode()
     assert "Published" in archive
     assert "Private Draft" not in archive
+
+
+def test_public_poems_are_ordered_by_effective_date_without_reordering_admin_tree(
+    client, site_tree
+):
+    older = add_poem(
+        site_tree["poem_index"],
+        title="Older dated poem",
+        slug="older-dated-poem",
+        display_date=date(2025, 11, 29),
+    )
+    same_day_earlier = add_poem(
+        site_tree["poem_index"],
+        title="Same day, published earlier",
+        slug="same-day-published-earlier",
+        display_date=date(2026, 7, 22),
+    )
+    same_day_later = add_poem(
+        site_tree["poem_index"],
+        title="Same day, published later",
+        slug="same-day-published-later",
+        display_date=date(2026, 7, 22),
+    )
+    same_timestamp_later_pk = add_poem(
+        site_tree["poem_index"],
+        title="Same timestamp, later ID",
+        slug="same-timestamp-later-id",
+        display_date=date(2026, 7, 22),
+    )
+    publication_date_fallback = add_poem(
+        site_tree["poem_index"],
+        title="Publication date fallback",
+        slug="publication-date-fallback",
+    )
+
+    Page.objects.filter(pk=same_day_earlier.pk).update(
+        first_published_at=datetime(2026, 7, 22, 14, tzinfo=UTC)
+    )
+    Page.objects.filter(pk=same_day_later.pk).update(
+        first_published_at=datetime(2026, 7, 22, 15, tzinfo=UTC)
+    )
+    Page.objects.filter(pk=same_timestamp_later_pk.pk).update(
+        first_published_at=datetime(2026, 7, 22, 15, tzinfo=UTC)
+    )
+    Page.objects.filter(pk=publication_date_fallback.pk).update(
+        first_published_at=datetime(2026, 7, 23, 14, tzinfo=UTC)
+    )
+
+    expected_public_order = [
+        "Publication date fallback",
+        "Same timestamp, later ID",
+        "Same day, published later",
+        "Same day, published earlier",
+        "Older dated poem",
+    ]
+    poem_ids = [
+        older.pk,
+        same_day_earlier.pk,
+        same_day_later.pk,
+        same_timestamp_later_pk.pk,
+        publication_date_fallback.pk,
+    ]
+    assert (
+        list(live_poems().filter(pk__in=poem_ids).values_list("title", flat=True))
+        == expected_public_order
+    )
+
+    for path in ["/", "/poems/"]:
+        listing = client.get(path).content.decode()
+        assert [listing.index(f">{title}</a>") for title in expected_public_order] == sorted(
+            listing.index(f">{title}</a>") for title in expected_public_order
+        )
+
+    assert list(site_tree["poem_index"].get_children().values_list("title", flat=True)) == [
+        "Older dated poem",
+        "Same day, published earlier",
+        "Same day, published later",
+        "Same timestamp, later ID",
+        "Publication date fallback",
+    ]
 
 
 def test_wagtail_owner_can_edit_only_owned_poems_and_cannot_publish_without_permission(
