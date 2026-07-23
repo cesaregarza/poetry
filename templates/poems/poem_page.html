@@ -44,8 +44,20 @@
       </footer>
     {% endif %}
 
-    <nav class="poem-return" aria-label="Back to archive">
-      <a href="/poems/"><span aria-hidden="true">←</span> All poems</a>
+    <nav class="poem-navigation" aria-label="Poem navigation">
+      {% if previous_poem %}
+        <a class="poem-navigation-link poem-navigation-previous" href="{% pageurl previous_poem %}" rel="prev" aria-label="Previous poem: {{ previous_poem.title }}">
+          <span class="poem-navigation-label"><span aria-hidden="true">←</span> Previous poem</span>
+          <span class="poem-navigation-title">{{ previous_poem.title }}</span>
+        </a>
+      {% endif %}
+      <a class="poem-navigation-all" href="/poems/">All poems</a>
+      {% if next_poem %}
+        <a class="poem-navigation-link poem-navigation-next" href="{% pageurl next_poem %}" rel="next" aria-label="Next poem: {{ next_poem.title }}">
+          <span class="poem-navigation-label">Next poem <span aria-hidden="true">→</span></span>
+          <span class="poem-navigation-title">{{ next_poem.title }}</span>
+        </a>
+      {% endif %}
     </nav>
   </article>
 {% endblock %}

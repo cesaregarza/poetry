@@ -33,7 +33,7 @@
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="/poems/">Poems</a>
-        <a href="{% url 'collection_index' %}">Collections</a>
+        {% if public_collections %}<a href="{% url 'collection_index' %}">Collections</a>{% endif %}
         <a href="/about/">About</a>
         <a href="{% url 'search' %}">Search</a>
         <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">

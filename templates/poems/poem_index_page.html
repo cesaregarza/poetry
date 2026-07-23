@@ -14,15 +14,17 @@
         <label for="archive-query">Search poems</label>
         <input id="archive-query" name="q" type="search" value="{{ query }}" placeholder="A title, line, or word">
       </div>
-      <div>
-        <label for="archive-collection">Collection</label>
-        <select id="archive-collection" name="collection">
-          <option value="">All collections</option>
-          {% for collection in collections %}
-            <option value="{{ collection.slug }}"{% if selected_collection == collection.slug %} selected{% endif %}>{{ collection.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      {% if public_collections %}
+        <div>
+          <label for="archive-collection">Collection</label>
+          <select id="archive-collection" name="collection">
+            <option value="">All collections</option>
+            {% for collection in public_collections %}
+              <option value="{{ collection.slug }}"{% if selected_collection == collection.slug %} selected{% endif %}>{{ collection.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
       <button class="button" type="submit">Apply</button>
     </form>
 
