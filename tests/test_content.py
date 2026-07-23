@@ -9,7 +9,13 @@ from django.core.management import call_command
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import clear_url_caches, resolve
-from wagtail.models import GroupPagePermission, Page, Site, get_default_page_content_type
+from wagtail.models import (
+    GroupPagePermission,
+    Page,
+    PageViewRestriction,
+    Site,
+    get_default_page_content_type,
+)
 from wagtail.permission_policies.pages import PagePermissionPolicy
 
 from poems.models import AboutPage, Collection, HomePage, PoemIndexPage, PoemPage, live_poems
@@ -141,6 +147,12 @@ def test_public_poems_are_ordered_by_effective_date_without_reordering_admin_tre
         == expected_public_order
     )
 
+    previous_poem, next_poem = same_day_later.get_public_neighbors()
+    assert previous_poem.pk == same_timestamp_later_pk.pk
+    assert next_poem.pk == same_day_earlier.pk
+    assert publication_date_fallback.get_public_neighbors()[0] is None
+    assert older.get_public_neighbors()[1] is None
+
     for path in ["/", "/poems/"]:
         listing = client.get(path).content.decode()
         assert [listing.index(f">{title}</a>") for title in expected_public_order] == sorted(
@@ -154,6 +166,68 @@ def test_public_poems_are_ordered_by_effective_date_without_reordering_admin_tre
         "Same timestamp, later ID",
         "Publication date fallback",
     ]
+
+
+def test_poem_navigation_follows_public_order_and_skips_drafts(client, site_tree):
+    older = add_poem(
+        site_tree["poem_index"],
+        title="Older neighbor",
+        slug="older-neighbor",
+        display_date=date(2026, 1, 1),
+    )
+    draft = add_poem(
+        site_tree["poem_index"],
+        title="Hidden draft",
+        slug="hidden-draft",
+        display_date=date(2026, 1, 2),
+        live=False,
+    )
+    current = add_poem(
+        site_tree["poem_index"],
+        title="Current poem",
+        slug="current-poem",
+        display_date=date(2026, 1, 2),
+    )
+    restricted = add_poem(
+        site_tree["poem_index"],
+        title="Restricted poem",
+        slug="restricted-poem",
+        display_date=date(2026, 1, 2),
+    )
+    PageViewRestriction.objects.create(
+        page=restricted,
+        restriction_type=PageViewRestriction.PASSWORD,
+        password="test-only",
+    )
+    newer = add_poem(
+        site_tree["poem_index"],
+        title="Newer neighbor",
+        slug="newer-neighbor",
+        display_date=date(2026, 1, 3),
+    )
+
+    previous_poem, next_poem = current.get_public_neighbors()
+    assert previous_poem.pk == newer.pk
+    assert next_poem.pk == older.pk
+    assert draft.get_public_neighbors() == (None, None)
+    assert restricted.get_public_neighbors() == (None, None)
+
+    current_page = client.get("/poems/current-poem/")
+    html = current_page.content.decode()
+    assert current_page.context["previous_poem"].pk == newer.pk
+    assert current_page.context["next_poem"].pk == older.pk
+    assert 'href="/poems/newer-neighbor/" rel="prev"' in html
+    assert 'href="/poems/older-neighbor/" rel="next"' in html
+    assert "Hidden draft" not in html
+    assert "Restricted poem" not in html
+
+    newest_page = client.get("/poems/newer-neighbor/").content.decode()
+    assert 'rel="prev"' not in newest_page
+    assert 'href="/poems/current-poem/" rel="next"' in newest_page
+
+    oldest_page = client.get("/poems/older-neighbor/").content.decode()
+    assert 'href="/poems/current-poem/" rel="prev"' in oldest_page
+    assert 'rel="next"' not in oldest_page
 
 
 def test_wagtail_owner_can_edit_only_owned_poems_and_cannot_publish_without_permission(
@@ -249,6 +323,57 @@ def test_collection_theme_search_and_listing_filters(client, site_tree):
     filtered = client.get("/poems/", {"collection": "field-notes"}).content.decode()
     assert "Rain Ledger" in filtered
     assert ">Stone<" not in filtered
+
+
+def test_collection_navigation_waits_for_a_publicly_collected_poem(client, site_tree):
+    empty_collection = Collection.objects.create(name="Empty Collection")
+    draft_collection = Collection.objects.create(name="Draft Collection")
+    restricted_collection = Collection.objects.create(name="Restricted Collection")
+    draft = add_poem(
+        site_tree["poem_index"],
+        title="Collected Draft",
+        slug="collected-draft",
+        collection=draft_collection,
+        live=False,
+    )
+    add_poem(
+        site_tree["poem_index"],
+        title="Public but Uncollected",
+        slug="public-but-uncollected",
+    )
+    restricted = add_poem(
+        site_tree["poem_index"],
+        title="Restricted Collection Poem",
+        slug="restricted-collection-poem",
+        collection=restricted_collection,
+    )
+    PageViewRestriction.objects.create(
+        page=restricted,
+        restriction_type=PageViewRestriction.PASSWORD,
+        password="test-only",
+    )
+
+    home = client.get("/").content.decode()
+    archive = client.get("/poems/").content.decode()
+    assert 'href="/collections/"' not in home
+    assert 'id="archive-collection"' not in archive
+
+    collection_index = client.get("/collections/")
+    assert collection_index.status_code == 200
+    assert empty_collection.name in collection_index.content.decode()
+    assert draft_collection.name in collection_index.content.decode()
+    assert restricted_collection.name in collection_index.content.decode()
+    assert client.get(f"/collections/{draft_collection.slug}/").status_code == 200
+
+    draft.save_revision().publish()
+
+    home = client.get("/").content.decode()
+    archive = client.get("/poems/").content.decode()
+    assert 'href="/collections/"' in home
+    assert 'id="archive-collection"' in archive
+    assert f'<option value="{draft_collection.slug}">' in archive
+    assert f'<option value="{empty_collection.slug}">' not in archive
+    assert f'<option value="{restricted_collection.slug}">' not in archive
 
 
 def test_feed_sitemap_robots_and_metadata(client, site_tree, live_poem):

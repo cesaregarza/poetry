@@ -278,8 +278,7 @@ h2 {
 }
 
 .section-heading > a,
-.read-link,
-.poem-return a {
+.read-link {
   font-family: var(--sans);
   font-size: 0.78rem;
   font-weight: 600;
@@ -497,8 +496,59 @@ select {
   text-decoration: none;
 }
 
-.poem-return {
+.poem-navigation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
   margin-top: clamp(5rem, 12vw, 10rem);
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+
+.poem-navigation-link {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-decoration: none;
+}
+
+.poem-navigation-previous {
+  grid-column: 1;
+}
+
+.poem-navigation-all {
+  grid-column: 2;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.poem-navigation-next {
+  grid-column: 3;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.poem-navigation-label {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.poem-navigation-title {
+  color: var(--ink);
+  font-size: clamp(1.15rem, 1.05rem + 0.35vw, 1.4rem);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .prose h2,
@@ -609,6 +659,25 @@ select {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .poem-navigation {
+    grid-template-columns: 1fr;
+  }
+
+  .poem-navigation-previous,
+  .poem-navigation-all,
+  .poem-navigation-next {
+    grid-column: 1;
+  }
+
+  .poem-navigation-all {
+    text-align: left;
+  }
+
+  .poem-navigation-next {
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -639,7 +708,7 @@ select {
 
   .site-header,
   .site-footer,
-  .poem-return,
+  .poem-navigation,
   .theme-toggle,
   .skip-link {
     display: none !important;

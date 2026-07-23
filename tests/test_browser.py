@@ -1,6 +1,9 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
+
+from poems.models import PoemPage
 
 pytestmark = [
     pytest.mark.browser,
@@ -56,9 +59,25 @@ def test_system_theme_toggle_and_persistence(page, live_server, site_tree):
 
 
 def test_keyboard_mobile_print_and_reduced_motion(page, live_server, site_tree, live_poem):
+    older_poem = PoemPage(
+        title="Earlier Poem with a Deliberately Long Navigation Title",
+        slug="earlier-poem",
+        display_date=date(2026, 7, 20),
+        poem_body="An earlier line.",
+        live=False,
+    )
+    site_tree["poem_index"].add_child(instance=older_poem)
+    older_poem.save_revision().publish()
+
     page.set_viewport_size({"width": 360, "height": 740})
     page.goto(f"{live_server.url}/poems/small-hours/")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    assert page.get_by_role("link", name="All poems").is_visible()
+    assert page.get_by_role(
+        "link",
+        name="Next poem: Earlier Poem with a Deliberately Long Navigation Title",
+    ).is_visible()
+    assert_wcag_clean(page)
 
     page.keyboard.press("Tab")
     assert page.locator(":focus").get_attribute("href") == "#main-content"
@@ -66,6 +85,10 @@ def test_keyboard_mobile_print_and_reduced_motion(page, live_server, site_tree, 
     page.emulate_media(media="print")
     display = page.locator(".site-header").evaluate("element => getComputedStyle(element).display")
     assert display == "none"
+    navigation_display = page.locator(".poem-navigation").evaluate(
+        "element => getComputedStyle(element).display"
+    )
+    assert navigation_display == "none"
 
     page.emulate_media(media="screen", reduced_motion="reduce")
     duration = page.locator("body").evaluate(

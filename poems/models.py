@@ -132,7 +132,6 @@ class PoemIndexPage(Page):
                 "query": query,
                 "selected_collection": collection,
                 "selected_theme": theme,
-                "collections": Collection.objects.all(),
             }
         )
         return context
@@ -222,6 +221,26 @@ class PoemPage(Page):
             return self.first_published_at.date()
         return None
 
+    def get_context(self, request, *args, **kwargs):
+        context = super().get_context(request, *args, **kwargs)
+        context["previous_poem"], context["next_poem"] = self.get_public_neighbors()
+        return context
+
+    def get_public_neighbors(self):
+        ordered_ids = list(
+            live_poems().sibling_of(self, inclusive=True).values_list("pk", flat=True)
+        )
+        try:
+            position = ordered_ids.index(self.pk)
+        except ValueError:
+            return None, None
+
+        previous_id = ordered_ids[position - 1] if position > 0 else None
+        next_id = ordered_ids[position + 1] if position + 1 < len(ordered_ids) else None
+        neighbor_ids = [pk for pk in (previous_id, next_id) if pk is not None]
+        neighbors = PoemPage.objects.live().public().in_bulk(neighbor_ids)
+        return neighbors.get(previous_id), neighbors.get(next_id)
+
 
 class AboutPage(Page):
     body = RichTextField(
@@ -238,19 +257,26 @@ class AboutPage(Page):
 
 
 def live_poems():
-    effective_date = Coalesce(
-        "display_date",
-        Cast("first_published_at", output_field=models.DateField()),
-        output_field=models.DateField(),
-    )
     return (
         PoemPage.objects.live()
         .public()
         .select_related("collection")
         .prefetch_related("themes")
+        .alias(
+            effective_publication_date=Coalesce(
+                "display_date",
+                Cast("first_published_at", output_field=models.DateField()),
+                output_field=models.DateField(),
+            )
+        )
         .order_by(
-            effective_date.desc(nulls_last=True),
+            models.F("effective_publication_date").desc(nulls_last=True),
             models.F("first_published_at").desc(nulls_last=True),
             "-pk",
         )
     )
+
+
+def public_collections():
+    public_poem = live_poems().filter(collection_id=models.OuterRef("pk"))
+    return Collection.objects.filter(models.Exists(public_poem)).order_by("name")
