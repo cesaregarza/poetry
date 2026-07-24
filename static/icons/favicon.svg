@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .ground { fill: #7d3043; }
+    .page { fill: #fbf8f2; }
+
+    @media (prefers-color-scheme: dark) {
+      .ground { fill: #d78da0; }
+      .page { fill: #171514; }
+    }
+  </style>
+  <rect class="ground" x="2" y="2" width="60" height="60" rx="14"/>
+  <path class="page" d="M11 17.5c7.8-.7 14.3 1.1 19.5 5.4v25.6c-5.3-3.5-11.8-4.9-19.5-4.2V17.5Z"/>
+  <path class="page" d="M33.5 22.9c5.2-4.3 11.7-6.1 19.5-5.4v26.8c-7.7-.7-14.2.7-19.5 4.2V22.9Z"/>
+</svg>
