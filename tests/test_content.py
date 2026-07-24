@@ -62,6 +62,14 @@ def test_seeded_site_has_intentional_empty_states(client, site_tree):
         assert message in response.content.decode()
 
 
+def test_base_template_declares_site_icons(client, site_tree):
+    html = client.get("/").content.decode()
+
+    assert 'href="/static/icons/favicon.svg"' in html
+    assert 'href="/static/icons/favicon-32.png"' in html
+    assert 'href="/static/icons/apple-touch-icon.png"' in html
+
+
 def test_draft_is_not_public_and_owner_is_retained(client, site_tree):
     owner = get_user_model().objects.create_user(username="owner", password="safe-test-password")
     published = add_poem(site_tree["poem_index"], title="Published", slug="published", owner=owner)
