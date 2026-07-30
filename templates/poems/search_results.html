@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Search — Cesar Garza{% endblock %}
+{% block title %}Search Poems — {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block description %}Search poems by {{ settings.poems.PoetrySiteSettings.author_name }} by title, phrase, or word.{% endblock %}
+{% block og_title %}Search Poems{% endblock %}
+{% block og_description %}Search poems by title, phrase, or word.{% endblock %}
 {% block content %}
   <header class="page-heading measure-wide">
     <p class="eyebrow">Find a poem</p>

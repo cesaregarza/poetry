@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags %}
 
+{% block title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}Poems by {{ settings.poems.PoetrySiteSettings.author_name }} — Poetry Archive{% endif %}{% endblock %}
+{% block description %}{% if page.search_description %}{{ page.search_description }}{% else %}Browse short poems by {{ settings.poems.PoetrySiteSettings.author_name }} about love, family, work, and ordinary life.{% endif %}{% endblock %}
+{% block og_title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}Poems by {{ settings.poems.PoetrySiteSettings.author_name }}{% endif %}{% endblock %}
+{% block og_description %}{% if page.search_description %}{{ page.search_description }}{% else %}Browse short poems about love, family, work, and ordinary life.{% endif %}{% endblock %}
+
 {% block content %}
   <header class="page-heading measure-wide">
     <p class="eyebrow">Archive</p>

@@ -3,13 +3,15 @@ from django.db.models.functions import Cast, Coalesce
 from django.utils.text import slugify
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey
-from taggit.models import TaggedItemBase
+from taggit.models import Tag, TaggedItemBase
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.contrib.settings.models import BaseSiteSetting, register_setting
 from wagtail.fields import RichTextField
 from wagtail.models import Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
+
+from poems.seo import absolute_site_url, canonical_url, serialize_json_ld
 
 
 @register_snippet
@@ -126,10 +128,16 @@ class PoemIndexPage(Page):
             poems = poems.filter(themes__slug=theme)
         if query:
             poems = poems.search(query)
+        poems = paginate(request, poems, per_page=12)
         context.update(
             {
-                "poems": paginate(request, poems, per_page=12),
+                "canonical_url": canonical_url(
+                    request,
+                    page_number=poems.number if not (query or collection or theme) else None,
+                ),
+                "poems": poems,
                 "query": query,
+                "seo_noindex": bool(query or collection or theme),
                 "selected_collection": collection,
                 "selected_theme": theme,
             }
@@ -224,6 +232,37 @@ class PoemPage(Page):
     def get_context(self, request, *args, **kwargs):
         context = super().get_context(request, *args, **kwargs)
         context["previous_poem"], context["next_poem"] = self.get_public_neighbors()
+        site_settings = PoetrySiteSettings.for_request(request)
+        site_url = absolute_site_url(request)
+        page_url = canonical_url(request)
+        description = (
+            self.search_description
+            or self.listing_description
+            or f"Read “{self.title},” a poem by {site_settings.author_name}."
+        )
+        structured_data = {
+            "@context": "https://schema.org",
+            "@type": "CreativeWork",
+            "@id": f"{page_url}#poem",
+            "url": page_url,
+            "name": self.title,
+            "description": description,
+            "genre": "Poetry",
+            "inLanguage": "en-US",
+            "author": {"@id": f"{site_url}#author"},
+            "isPartOf": {"@id": f"{site_url}#website"},
+        }
+        if self.publication_date:
+            structured_data["datePublished"] = self.publication_date.isoformat()
+        if self.last_published_at:
+            structured_data["dateModified"] = self.last_published_at.isoformat()
+        themes = list(self.themes.names())
+        if themes:
+            structured_data["keywords"] = themes
+
+        context["canonical_url"] = page_url
+        context["poem_meta_description"] = description
+        context["poem_structured_data"] = serialize_json_ld(structured_data)
         return context
 
     def get_public_neighbors(self):
@@ -280,3 +319,13 @@ def live_poems():
 def public_collections():
     public_poem = live_poems().filter(collection_id=models.OuterRef("pk"))
     return Collection.objects.filter(models.Exists(public_poem)).order_by("name")
+
+
+def public_themes():
+    return (
+        Tag.objects.filter(
+            poems_poempagetag_items__content_object_id__in=live_poems().order_by().values("pk")
+        )
+        .distinct()
+        .order_by("name")
+    )

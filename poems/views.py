@@ -4,9 +4,9 @@ from django.db import DatabaseError, connections
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.static import serve
-from taggit.models import Tag
 
-from poems.models import Collection, live_poems
+from poems.models import live_poems, public_collections, public_themes
+from poems.seo import canonical_url
 
 
 def paginate(request, queryset, per_page=12):
@@ -15,24 +15,43 @@ def paginate(request, queryset, per_page=12):
 
 
 def collection_index(request):
-    collections = Collection.objects.order_by("name")
-    return render(request, "poems/collection_index.html", {"collections": collections})
+    collections = public_collections()
+    return render(
+        request,
+        "poems/collection_index.html",
+        {
+            "collections": collections,
+            "seo_noindex": not collections.exists(),
+        },
+    )
 
 
 def collection_detail(request, slug):
-    collection = get_object_or_404(Collection, slug=slug)
+    collection = get_object_or_404(public_collections(), slug=slug)
     poems = paginate(request, live_poems().filter(collection=collection))
     return render(
         request,
         "poems/collection_detail.html",
-        {"collection": collection, "poems": poems},
+        {
+            "canonical_url": canonical_url(request, page_number=poems.number),
+            "collection": collection,
+            "poems": poems,
+        },
     )
 
 
 def theme_detail(request, slug):
-    theme = get_object_or_404(Tag, slug=slug)
+    theme = get_object_or_404(public_themes(), slug=slug)
     poems = paginate(request, live_poems().filter(themes=theme).distinct())
-    return render(request, "poems/theme_detail.html", {"theme": theme, "poems": poems})
+    return render(
+        request,
+        "poems/theme_detail.html",
+        {
+            "canonical_url": canonical_url(request, page_number=poems.number),
+            "theme": theme,
+            "poems": poems,
+        },
+    )
 
 
 def search(request):
@@ -42,7 +61,12 @@ def search(request):
     return render(
         request,
         "poems/search_results.html",
-        {"query": query, "poems": paginate(request, poems)},
+        {
+            "canonical_url": canonical_url(request),
+            "query": query,
+            "poems": paginate(request, poems),
+            "seo_noindex": True,
+        },
     )
 
 

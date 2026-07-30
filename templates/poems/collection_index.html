@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags %}
 
-{% block title %}Collections — Cesar Garza{% endblock %}
+{% block title %}Poetry Collections — {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block description %}Explore poetry collections by {{ settings.poems.PoetrySiteSettings.author_name }}, gathered by season, place, and shared attention.{% endblock %}
+{% block og_title %}Poetry Collections by {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block og_description %}Poems gathered by season, place, and shared attention.{% endblock %}
 {% block content %}
   <header class="page-heading measure-wide">
     <p class="eyebrow">Gatherings</p>

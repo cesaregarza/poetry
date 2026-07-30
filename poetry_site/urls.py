@@ -2,11 +2,18 @@ from django.conf import settings
 from django.urls import include, path
 from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
+from wagtail.contrib.sitemaps.sitemap_generator import Sitemap as WagtailSitemap
 from wagtail.contrib.sitemaps.views import sitemap
 from wagtail.documents import urls as wagtaildocs_urls
 
 from poems import views
 from poems.feeds import PoemFeed
+from poems.sitemaps import PoetryHubSitemap
+
+SITEMAPS = {
+    "poetry_hubs": PoetryHubSitemap,
+    "wagtail": WagtailSitemap,
+}
 
 urlpatterns = [
     path("healthz", views.healthz, name="healthz"),
@@ -18,7 +25,7 @@ urlpatterns = [
     path("themes/<slug:slug>/", views.theme_detail, name="theme_detail"),
     path("search/", views.search, name="search"),
     path("feed/", PoemFeed(), name="poem_feed"),
-    path("sitemap.xml", sitemap, name="sitemap"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     path("robots.txt", views.robots, name="robots"),
 ]
 

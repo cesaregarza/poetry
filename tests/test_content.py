@@ -368,17 +368,20 @@ def test_collection_navigation_waits_for_a_publicly_collected_poem(client, site_
 
     collection_index = client.get("/collections/")
     assert collection_index.status_code == 200
-    assert empty_collection.name in collection_index.content.decode()
-    assert draft_collection.name in collection_index.content.decode()
-    assert restricted_collection.name in collection_index.content.decode()
-    assert client.get(f"/collections/{draft_collection.slug}/").status_code == 200
+    assert empty_collection.name not in collection_index.content.decode()
+    assert draft_collection.name not in collection_index.content.decode()
+    assert restricted_collection.name not in collection_index.content.decode()
+    assert client.get(f"/collections/{draft_collection.slug}/").status_code == 404
 
     draft.save_revision().publish()
 
     home = client.get("/").content.decode()
     archive = client.get("/poems/").content.decode()
+    collection_index = client.get("/collections/").content.decode()
     assert 'href="/collections/"' in home
     assert 'id="archive-collection"' in archive
+    assert draft_collection.name in collection_index
+    assert client.get(f"/collections/{draft_collection.slug}/").status_code == 200
     assert f'<option value="{draft_collection.slug}">' in archive
     assert f'<option value="{empty_collection.slug}">' not in archive
     assert f'<option value="{restricted_collection.slug}">' not in archive

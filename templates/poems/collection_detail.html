@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags %}
 
-{% block title %}{{ collection.name }} — Cesar Garza{% endblock %}
+{% block title %}{{ collection.name }} — A Poetry Collection by {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block description %}{% if collection.description %}{{ collection.description|striptags|truncatechars:160 }}{% else %}Read poems from {{ collection.name }}, a poetry collection by {{ settings.poems.PoetrySiteSettings.author_name }}.{% endif %}{% endblock %}
+{% block og_title %}{{ collection.name }} — {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block og_description %}{% if collection.description %}{{ collection.description|striptags|truncatechars:160 }}{% else %}Read poems from the {{ collection.name }} collection.{% endif %}{% endblock %}
 {% block content %}
   <header class="page-heading measure-wide">
     <p class="eyebrow">Collection</p>
