@@ -14,7 +14,7 @@ CARD_DESIGN_VERSION = "1"
 INSTAGRAM_CARD_WIDTH = 1080
 INSTAGRAM_CARD_HEIGHT = 1350
 INSTAGRAM_CARD_SIZE = (INSTAGRAM_CARD_WIDTH, INSTAGRAM_CARD_HEIGHT)
-INSTAGRAM_CARD_DESIGN_VERSION = "2"
+INSTAGRAM_CARD_DESIGN_VERSION = "3"
 INSTAGRAM_BODY_MAX_SIZE = 46
 INSTAGRAM_BODY_MIN_SIZE = 24
 
@@ -302,7 +302,7 @@ def render_social_card(title, eyebrow, footer):
 
 
 @lru_cache(maxsize=256)
-def render_instagram_card(title, poem_body, dedication, author_name):
+def render_instagram_card(title, poem_body, dedication, footer):
     layout = instagram_card_layout(title, poem_body, dedication)
     image = Image.new("RGB", INSTAGRAM_CARD_SIZE, BACKGROUND)
     draw = ImageDraw.Draw(image)
@@ -360,10 +360,10 @@ def render_instagram_card(title, poem_body, dedication, author_name):
         width=2,
     )
     watermark_font = _font("InterVariable.woff2", 18)
-    author_watermark = author_name.upper()
+    site_watermark = footer.upper()
     draw.text(
         (INSTAGRAM_TEXT_LEFT, 1243),
-        author_watermark,
+        site_watermark,
         font=watermark_font,
         fill=MUTED_INK,
     )

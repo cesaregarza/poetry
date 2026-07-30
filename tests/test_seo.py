@@ -211,7 +211,7 @@ def test_public_instagram_card_is_full_size_downloadable_and_unlisted(client, li
         live_poem.title,
         live_poem.poem_body,
         live_poem.dedication,
-        "Cesar Garza",
+        "testserver",
     )
     card_path = f"/share/poems/{live_poem.pk}/{version}/instagram.png"
     response = client.get(card_path)
@@ -238,7 +238,7 @@ def test_public_instagram_card_is_full_size_downloadable_and_unlisted(client, li
         live_poem.title,
         f"{live_poem.poem_body}\nA new line.",
         live_poem.dedication,
-        "Cesar Garza",
+        "testserver",
     )
     assert changed_version != version
 

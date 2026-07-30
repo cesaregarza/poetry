@@ -59,7 +59,6 @@ class SocialPreviewPanel(Panel):
                 context["public_instagram_url"] = poem_instagram_card_url(
                     self.request,
                     live_poem,
-                    site_settings,
                 )
 
             return context

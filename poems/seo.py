@@ -36,13 +36,13 @@ def poem_social_card_url(request, poem, site_settings):
     return request.build_absolute_uri(path)
 
 
-def poem_instagram_card_url(request, poem, site_settings):
+def poem_instagram_card_url(request, poem):
     version = instagram_card_version(
         poem.pk,
         poem.title,
         poem.poem_body,
         poem.dedication,
-        site_settings.author_name,
+        request.get_host(),
     )
     path = reverse(
         "poem_instagram_card",
