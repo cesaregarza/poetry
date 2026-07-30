@@ -19,6 +19,7 @@ from wagtail.models import (
 from wagtail.permission_policies.pages import PagePermissionPolicy
 
 from poems.models import AboutPage, Collection, HomePage, PoemIndexPage, PoemPage, live_poems
+from poems.social_cards import render_instagram_card
 
 pytestmark = pytest.mark.django_db
 
@@ -279,6 +280,9 @@ def test_wagtail_owner_can_edit_only_owned_poems_and_cannot_publish_without_perm
     owner.user_permissions.add(Permission.objects.get(codename="access_admin"))
     client.force_login(owner)
     assert client.get(f"/admin/pages/{owned_poem.pk}/edit/").status_code == 200
+    assert (
+        client.get(f"/admin/poems/{owned_poem.pk}/social-preview/instagram.png").status_code == 200
+    )
     assert client.get(f"/admin/pages/{other_poem.pk}/edit/").status_code != 200
 
     GroupPagePermission.objects.create(
@@ -291,6 +295,82 @@ def test_wagtail_owner_can_edit_only_owned_poems_and_cannot_publish_without_perm
     )
     delattr(owner, "_page_permission_cache")
     assert policy.user_has_permission_for_instance(owner, "publish", owned_poem)
+
+
+def test_wagtail_social_panel_and_admin_previews_use_latest_saved_revision(
+    client,
+    site_tree,
+):
+    admin = get_user_model().objects.create_superuser(
+        username="social-admin",
+        email="social-admin@example.com",
+        password="safe-test-password",
+    )
+    poem = add_poem(
+        site_tree["poem_index"],
+        title="Window Weather",
+        slug="window-weather",
+        body="The first version waits.",
+    )
+    poem.poem_body = "The saved draft opens.\n\nEvery line is still here."
+    poem.save_revision()
+
+    client.force_login(admin)
+    edit_response = client.get(f"/admin/pages/{poem.pk}/edit/")
+    edit_html = edit_response.content.decode()
+    open_graph_path = f"/admin/poems/{poem.pk}/social-preview/open-graph.png"
+    instagram_path = f"/admin/poems/{poem.pk}/social-preview/instagram.png"
+
+    assert edit_response.status_code == 200
+    assert "Social previews" in edit_html
+    assert "Open Graph" in edit_html
+    assert "Instagram portrait" in edit_html
+    assert "1200 × 630" in edit_html
+    assert "1080 × 1350" in edit_html
+    assert open_graph_path in edit_html
+    assert instagram_path in edit_html
+    assert f"/share/poems/{poem.pk}/" in edit_html
+
+    open_graph = client.get(open_graph_path)
+    assert open_graph.status_code == 200
+    assert "private" in open_graph["Cache-Control"]
+    assert "no-store" in open_graph["Cache-Control"]
+
+    instagram = client.get(instagram_path)
+    assert instagram.status_code == 200
+    assert "private" in instagram["Cache-Control"]
+    assert "no-store" in instagram["Cache-Control"]
+    assert instagram["X-Robots-Tag"] == "noindex, noimageindex"
+    assert instagram.content == render_instagram_card(
+        poem.title,
+        poem.poem_body,
+        poem.dedication,
+        "Cesar Garza",
+    )
+
+    download = client.get(instagram_path, {"download": "1"})
+    assert download["Content-Disposition"] == 'attachment; filename="window-weather-instagram.png"'
+
+
+def test_admin_social_previews_require_login_and_edit_permission(client, site_tree):
+    poem = add_poem(
+        site_tree["poem_index"],
+        title="Protected Preview",
+        slug="protected-preview",
+        live=False,
+    )
+    path = f"/admin/poems/{poem.pk}/social-preview/instagram.png"
+
+    anonymous_response = client.get(path)
+    assert anonymous_response.status_code == 302
+    assert anonymous_response["Location"].startswith("/admin/login/")
+
+    user = get_user_model().objects.create_user(
+        username="preview-stranger",
+        password="safe-test-password",
+    )
+    client.force_login(user)
+    assert client.get(path).status_code == 403
 
 
 def test_exact_text_is_escaped_and_whitespace_is_preserved(client, site_tree):

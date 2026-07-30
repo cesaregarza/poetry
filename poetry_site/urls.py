@@ -24,6 +24,21 @@ urlpatterns = [
         views.poem_social_card,
         name="poem_social_card",
     ),
+    path(
+        "share/poems/<int:page_id>/<str:version>/instagram.png",
+        views.poem_instagram_card,
+        name="poem_instagram_card",
+    ),
+    path(
+        "admin/poems/<int:page_id>/social-preview/open-graph.png",
+        views.admin_poem_social_card_preview,
+        name="admin_poem_social_card_preview",
+    ),
+    path(
+        "admin/poems/<int:page_id>/social-preview/instagram.png",
+        views.admin_poem_instagram_card_preview,
+        name="admin_poem_instagram_card_preview",
+    ),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("collections/", views.collection_index, name="collection_index"),

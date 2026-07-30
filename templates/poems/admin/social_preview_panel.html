@@ -1,0 +1,140 @@
+<fieldset>
+  {% if self.heading %}
+    <legend class="w-sr-only">{{ self.heading }}</legend>
+  {% endif %}
+  <div class="{{ self.classname }}">
+    <style>
+      .poetry-social-previews {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(15rem, 0.8fr);
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .poetry-social-preview {
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid var(--w-color-border-furniture);
+        border-radius: 0.25rem;
+        background: var(--w-color-surface-page);
+      }
+
+      .poetry-social-preview h3 {
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+      }
+
+      .poetry-social-preview-meta {
+        margin: 0 0 0.75rem;
+        color: var(--w-color-text-context);
+        font-size: 0.8rem;
+      }
+
+      .poetry-social-preview-frame {
+        display: block;
+        overflow: hidden;
+        width: 100%;
+        border: 1px solid var(--w-color-border-furniture);
+        border-radius: 0.2rem;
+        background: #f5f0e7;
+      }
+
+      .poetry-social-preview-frame--og {
+        aspect-ratio: 1200 / 630;
+      }
+
+      .poetry-social-preview-frame--instagram {
+        aspect-ratio: 1080 / 1350;
+      }
+
+      .poetry-social-preview-frame img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .poetry-social-preview-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.85rem;
+      }
+
+      .poetry-social-preview-warning {
+        padding: 0.85rem;
+        border-inline-start: 0.25rem solid var(--w-color-critical-200);
+        background: var(--w-color-critical-50);
+      }
+
+      @media (max-width: 50rem) {
+        .poetry-social-previews {
+          grid-template-columns: 1fr;
+        }
+
+        .poetry-social-preview--instagram {
+          max-width: 28rem;
+        }
+      }
+    </style>
+
+    {% if self.help_text %}<p class="help">{{ self.help_text }}</p>{% endif %}
+
+    {% if is_saved %}
+      <div class="poetry-social-previews">
+        <section class="poetry-social-preview">
+          <h3>Open Graph</h3>
+          <p class="poetry-social-preview-meta">
+            1200 × 630{% if open_graph_uses_upload %} · uploaded social image{% else %} · generated title card{% endif %}
+          </p>
+          <a
+            class="poetry-social-preview-frame poetry-social-preview-frame--og"
+            href="{{ open_graph_preview_url }}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Open the full-size Open Graph image"
+          >
+            <img src="{{ open_graph_preview_url }}" alt="Open Graph preview for {{ self.instance.title }}">
+          </a>
+          <div class="poetry-social-preview-actions">
+            <a class="button button-small button-secondary" href="{{ open_graph_preview_url }}" target="_blank" rel="noopener">Open preview</a>
+            <a class="button button-small button-secondary" href="{{ open_graph_preview_url }}{% if not open_graph_uses_upload %}?download=1{% endif %}" download>Download {% if open_graph_uses_upload %}image{% else %}PNG{% endif %}</a>
+            {% if public_open_graph_url %}
+              <a class="button button-small button-secondary" href="{{ public_open_graph_url }}" target="_blank" rel="noopener">Public image</a>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="poetry-social-preview poetry-social-preview--instagram">
+          <h3>Instagram portrait</h3>
+          <p class="poetry-social-preview-meta">1080 × 1350 · full poem · author signature</p>
+          {% if instagram_error %}
+            <div class="poetry-social-preview-warning">
+              <strong>This poem needs a carousel.</strong>
+              <p>{{ instagram_error }}</p>
+            </div>
+          {% else %}
+            <a
+              class="poetry-social-preview-frame poetry-social-preview-frame--instagram"
+              href="{{ instagram_preview_url }}"
+              target="_blank"
+              rel="noopener"
+              aria-label="Open the full-size Instagram image"
+            >
+              <img src="{{ instagram_preview_url }}" alt="Instagram portrait preview for {{ self.instance.title }}">
+            </a>
+            <div class="poetry-social-preview-actions">
+              <a class="button button-small button-secondary" href="{{ instagram_preview_url }}" target="_blank" rel="noopener">Open preview</a>
+              <a class="button button-small button-secondary" href="{{ instagram_preview_url }}?download=1" download>Download PNG</a>
+              {% if public_instagram_url %}
+                <a class="button button-small button-secondary" href="{{ public_instagram_url }}" target="_blank" rel="noopener">Public image</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </section>
+      </div>
+    {% else %}
+      <p>Save this poem once to generate its social previews.</p>
+    {% endif %}
+  </div>
+</fieldset>

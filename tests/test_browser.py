@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
 
 from poems.models import PoemPage
 
@@ -95,3 +96,37 @@ def test_keyboard_mobile_print_and_reduced_motion(page, live_server, site_tree, 
         "element => getComputedStyle(element).transitionDuration"
     )
     assert duration in {"0.00001s", "1e-05s", "0s"}
+
+
+def test_wagtail_social_preview_panel_renders_both_formats(
+    page,
+    live_server,
+    live_poem,
+):
+    get_user_model().objects.create_superuser(
+        username="browser-admin",
+        email="browser-admin@example.com",
+        password="safe-test-password",
+    )
+    page.goto(f"{live_server.url}/admin/login/")
+    page.get_by_label("Username").fill("browser-admin")
+    page.get_by_label("Password").fill("safe-test-password")
+    page.get_by_role("button", name="Sign in").click()
+
+    page.goto(f"{live_server.url}/admin/pages/{live_poem.pk}/edit/")
+    page.get_by_role("heading", name="Social previews").scroll_into_view_if_needed()
+
+    open_graph = page.get_by_alt_text("Open Graph preview for Small Hours")
+    instagram = page.get_by_alt_text("Instagram portrait preview for Small Hours")
+    open_graph.wait_for()
+    instagram.wait_for()
+
+    assert open_graph.evaluate("image => [image.naturalWidth, image.naturalHeight]") == [
+        1200,
+        630,
+    ]
+    assert instagram.evaluate("image => [image.naturalWidth, image.naturalHeight]") == [
+        1080,
+        1350,
+    ]
+    assert page.get_by_role("link", name="Public image").count() == 2

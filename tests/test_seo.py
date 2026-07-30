@@ -7,6 +7,12 @@ import pytest
 from PIL import Image
 
 from poems.models import Collection, PoemPage
+from poems.social_cards import (
+    INSTAGRAM_BODY_MAX_SIZE,
+    InstagramCardTooLong,
+    instagram_card_layout,
+    instagram_card_version,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -196,3 +202,67 @@ def test_dynamic_social_card_does_not_expose_draft_poems(client, site_tree):
     draft.save_revision()
 
     assert client.get(f"/og/poems/{draft.pk}/000000000000.png").status_code == 404
+    assert client.get(f"/share/poems/{draft.pk}/000000000000/instagram.png").status_code == 404
+
+
+def test_public_instagram_card_is_full_size_downloadable_and_unlisted(client, live_poem):
+    version = instagram_card_version(
+        live_poem.pk,
+        live_poem.title,
+        live_poem.poem_body,
+        live_poem.dedication,
+        "Cesar Garza",
+    )
+    card_path = f"/share/poems/{live_poem.pk}/{version}/instagram.png"
+    response = client.get(card_path)
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "image/png"
+    assert response["Content-Disposition"] == 'inline; filename="small-hours-instagram.png"'
+    assert response["X-Robots-Tag"] == "noindex, noimageindex"
+    assert "public" in response["Cache-Control"]
+    assert "max-age=31536000" in response["Cache-Control"]
+    assert "immutable" in response["Cache-Control"]
+    assert Image.open(BytesIO(response.content)).size == (1080, 1350)
+
+    download = client.get(card_path, {"download": "1"})
+    assert download["Content-Disposition"] == 'attachment; filename="small-hours-instagram.png"'
+
+    poem_html = client.get("/poems/small-hours/").content.decode()
+    assert card_path not in poem_html
+    assert card_path not in client.get("/sitemap.xml").content.decode()
+    assert client.get(f"/share/poems/{live_poem.pk}/000000000000/instagram.png").status_code == 404
+
+    changed_version = instagram_card_version(
+        live_poem.pk,
+        live_poem.title,
+        f"{live_poem.poem_body}\nA new line.",
+        live_poem.dedication,
+        "Cesar Garza",
+    )
+    assert changed_version != version
+
+
+def test_instagram_layout_preserves_stanzas_and_autosizes_for_more_text():
+    short_layout = instagram_card_layout(
+        "Small Hours",
+        "The moon keeps quiet.\n\nSo do I.",
+    )
+    longer_layout = instagram_card_layout(
+        "Small Hours",
+        "\n\n".join(
+            f"Line {number} carries a little more weather into the room." for number in range(1, 13)
+        ),
+    )
+
+    assert short_layout.body_font_size == INSTAGRAM_BODY_MAX_SIZE
+    assert "" in short_layout.body_lines
+    assert longer_layout.body_font_size < short_layout.body_font_size
+    assert longer_layout.body_top + longer_layout.body_height <= 1182
+
+
+def test_instagram_layout_refuses_unreadably_long_single_card():
+    poem_body = "\n".join(f"Line {number}" for number in range(100))
+
+    with pytest.raises(InstagramCardTooLong, match="more than one"):
+        instagram_card_layout("A Long Poem", poem_body)
