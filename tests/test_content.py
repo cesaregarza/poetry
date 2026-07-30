@@ -345,7 +345,7 @@ def test_wagtail_social_panel_and_admin_previews_use_latest_saved_revision(
         poem.title,
         poem.poem_body,
         poem.dedication,
-        "Cesar Garza",
+        "testserver",
     )
 
     download = client.get(instagram_path, {"download": "1"})

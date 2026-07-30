@@ -133,14 +133,14 @@ def _social_card_response(*, title, eyebrow, footer, public=True, download=False
     )
 
 
-def _instagram_card_response(request, poem, site_settings, *, public):
+def _instagram_card_response(request, poem, *, public):
     filename_stem = slugify(poem.slug or poem.title) or f"poem-{poem.pk}"
     try:
         payload = render_instagram_card(
             poem.title,
             poem.poem_body,
             poem.dedication,
-            site_settings.author_name,
+            request.get_host(),
         )
     except InstagramCardTooLong as error:
         response = HttpResponse(
@@ -198,17 +198,16 @@ def poem_social_card(request, page_id, version):
 @require_safe
 def poem_instagram_card(request, page_id, version):
     poem = get_object_or_404(PoemPage.objects.live().public(), pk=page_id)
-    site_settings = PoetrySiteSettings.for_request(request)
     expected_version = instagram_card_version(
         poem.pk,
         poem.title,
         poem.poem_body,
         poem.dedication,
-        site_settings.author_name,
+        request.get_host(),
     )
     if version != expected_version:
         raise Http404
-    return _instagram_card_response(request, poem, site_settings, public=True)
+    return _instagram_card_response(request, poem, public=True)
 
 
 @require_safe
@@ -229,8 +228,7 @@ def admin_poem_social_card_preview(request, page_id):
 @login_required(login_url="/admin/login/")
 def admin_poem_instagram_card_preview(request, page_id):
     poem = _editable_poem_for_request(request, page_id)
-    site_settings = PoetrySiteSettings.for_request(request)
-    return _instagram_card_response(request, poem, site_settings, public=False)
+    return _instagram_card_response(request, poem, public=False)
 
 
 def debug_media(request, path):
