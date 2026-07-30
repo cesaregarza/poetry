@@ -9,31 +9,42 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'icons/favicon.svg' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icons/favicon-32.png' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
-    <link rel="alternate" type="application/rss+xml" title="Cesar Garza — Poetry" href="{% url 'poem_feed' %}">
     <meta name="theme-color" content="#f5f0e7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#171514" media="(prefers-color-scheme: dark)">
     {% with site_settings=settings.poems.PoetrySiteSettings %}
+      <link rel="alternate" type="application/rss+xml" title="{{ site_settings.site_title }}" href="{% url 'poem_feed' %}">
+      <link rel="canonical" href="{{ canonical_url }}">
+      {% if seo_noindex %}<meta name="robots" content="noindex, follow">{% endif %}
       <title>{% block title %}{% if page and page.seo_title %}{{ page.seo_title }}{% elif page %}{{ page.title }}{% else %}{{ site_settings.site_title }}{% endif %}{% endblock %}</title>
       <meta name="description" content="{% block description %}{% if page and page.search_description %}{{ page.search_description }}{% else %}Poetry by {{ site_settings.author_name }}.{% endif %}{% endblock %}">
       <meta property="og:site_name" content="{{ site_settings.site_title }}">
       <meta property="og:type" content="{% block og_type %}website{% endblock %}">
       <meta property="og:title" content="{% block og_title %}{% if page %}{{ page.title }}{% else %}{{ site_settings.site_title }}{% endif %}{% endblock %}">
+      <meta property="og:description" content="{% block og_description %}{% if page and page.search_description %}{{ page.search_description }}{% else %}Poetry by {{ site_settings.author_name }}.{% endif %}{% endblock %}">
+      <meta property="og:url" content="{{ canonical_url }}">
+      <meta name="twitter:card" content="{% if page.social_image or site_settings.default_social_image %}summary_large_image{% else %}summary{% endif %}">
       {% block social_image %}
         {% if site_settings.default_social_image %}
           {% image site_settings.default_social_image fill-1200x630 as default_social %}
           <meta property="og:image" content="{{ default_social.full_url }}">
+          <meta property="og:image:alt" content="{{ site_settings.default_social_image.title }}">
+          <meta name="twitter:image" content="{{ default_social.full_url }}">
+          <meta name="twitter:image:alt" content="{{ site_settings.default_social_image.title }}">
         {% endif %}
       {% endblock %}
+      <script type="application/ld+json" data-schema="site">{{ site_structured_data|safe }}</script>
     {% endwith %}
     {% block extra_head %}{% endblock %}
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="site-header">
-      <a class="wordmark" href="/" aria-label="Cesar Garza Poetry, home">
-        <span>Cesar Garza</span>
-        <span class="wordmark-mark">Poetry</span>
-      </a>
+      {% with site_settings=settings.poems.PoetrySiteSettings %}
+        <a class="wordmark" href="/" aria-label="{{ site_settings.author_name }} Poetry, home">
+          <span>{{ site_settings.author_name }}</span>
+          <span class="wordmark-mark">Poetry</span>
+        </a>
+      {% endwith %}
       <nav class="site-nav" aria-label="Primary navigation">
         <a href="/poems/">Poems</a>
         {% if public_collections %}<a href="{% url 'collection_index' %}">Collections</a>{% endif %}

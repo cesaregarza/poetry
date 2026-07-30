@@ -1,16 +1,27 @@
 {% extends "base.html" %}
 {% load wagtailcore_tags wagtailimages_tags %}
 
-{% block title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }}{% endif %} — Cesar Garza{% endblock %}
-{% block description %}{% if page.search_description %}{{ page.search_description }}{% elif page.listing_description %}{{ page.listing_description }}{% else %}A poem by Cesar Garza.{% endif %}{% endblock %}
+{% block title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }} — A Poem by {{ settings.poems.PoetrySiteSettings.author_name }}{% endif %}{% endblock %}
+{% block description %}{{ poem_meta_description }}{% endblock %}
 {% block og_type %}article{% endblock %}
+{% block og_title %}{{ page.title }} — A Poem by {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block og_description %}{{ poem_meta_description }}{% endblock %}
 {% block social_image %}
   {% if page.social_image %}
     {% image page.social_image fill-1200x630 as poem_social %}
     <meta property="og:image" content="{{ poem_social.full_url }}">
+    <meta property="og:image:alt" content="{{ page.social_image.title }}">
+    <meta name="twitter:image" content="{{ poem_social.full_url }}">
+    <meta name="twitter:image:alt" content="{{ page.social_image.title }}">
   {% else %}
     {{ block.super }}
   {% endif %}
+{% endblock %}
+{% block extra_head %}
+  {% if page.publication_date %}<meta property="article:published_time" content="{{ page.publication_date|date:'Y-m-d' }}">{% endif %}
+  {% if page.last_published_at %}<meta property="article:modified_time" content="{{ page.last_published_at|date:'c' }}">{% endif %}
+  <meta property="article:author" content="{{ seo_site_url }}about/">
+  <script type="application/ld+json" data-schema="poem">{{ poem_structured_data|safe }}</script>
 {% endblock %}
 
 {% block content %}

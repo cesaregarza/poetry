@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}{{ theme.name }} — Themes — Cesar Garza{% endblock %}
+{% block title %}Poems About {{ theme.name }} — {{ settings.poems.PoetrySiteSettings.author_name }}{% endblock %}
+{% block description %}Read poems about {{ theme.name }} by {{ settings.poems.PoetrySiteSettings.author_name }}.{% endblock %}
+{% block og_title %}Poems About {{ theme.name }}{% endblock %}
+{% block og_description %}Poems about {{ theme.name }} by {{ settings.poems.PoetrySiteSettings.author_name }}.{% endblock %}
 {% block content %}
   <header class="page-heading measure-wide">
     <p class="eyebrow">Theme</p>
