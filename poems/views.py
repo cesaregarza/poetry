@@ -1,9 +1,12 @@
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import DatabaseError, connections
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.cache import patch_cache_control
+from django.utils.text import slugify
 from django.views.decorators.http import require_safe
 from django.views.static import serve
 
@@ -15,7 +18,12 @@ from poems.models import (
     public_themes,
 )
 from poems.seo import canonical_url
-from poems.social_cards import render_social_card
+from poems.social_cards import (
+    InstagramCardTooLong,
+    instagram_card_version,
+    render_instagram_card,
+    render_social_card,
+)
 
 
 def paginate(request, queryset, per_page=12):
@@ -99,14 +107,71 @@ def robots(request):
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
-def _social_card_response(*, title, eyebrow, footer):
+def _png_response(payload, *, filename, public, download=False, indexable=True):
     response = HttpResponse(
-        render_social_card(title, eyebrow, footer),
+        payload,
         content_type="image/png",
     )
-    patch_cache_control(response, public=True, max_age=31536000, immutable=True)
-    response["Content-Disposition"] = 'inline; filename="social-card.png"'
+    if public:
+        patch_cache_control(response, public=True, max_age=31536000, immutable=True)
+    else:
+        patch_cache_control(response, private=True, no_store=True, max_age=0)
+    disposition = "attachment" if download else "inline"
+    response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+    if not indexable:
+        response["X-Robots-Tag"] = "noindex, noimageindex"
     return response
+
+
+def _social_card_response(*, title, eyebrow, footer, public=True, download=False):
+    return _png_response(
+        render_social_card(title, eyebrow, footer),
+        filename="social-card.png",
+        public=public,
+        download=download,
+        indexable=public,
+    )
+
+
+def _instagram_card_response(request, poem, site_settings, *, public):
+    filename_stem = slugify(poem.slug or poem.title) or f"poem-{poem.pk}"
+    try:
+        payload = render_instagram_card(
+            poem.title,
+            poem.poem_body,
+            poem.dedication,
+            site_settings.author_name,
+        )
+    except InstagramCardTooLong as error:
+        response = HttpResponse(
+            str(error),
+            status=422,
+            content_type="text/plain; charset=utf-8",
+        )
+        patch_cache_control(response, private=True, no_store=True, max_age=0)
+        response["X-Robots-Tag"] = "noindex, noimageindex"
+        return response
+
+    return _png_response(
+        payload,
+        filename=f"{filename_stem}-instagram.png",
+        public=public,
+        download=request.GET.get("download") == "1",
+        indexable=False,
+    )
+
+
+def _editable_poem_for_request(request, page_id):
+    poem = get_object_or_404(
+        PoemPage.objects.select_related("latest_revision"),
+        pk=page_id,
+    )
+    if (
+        not request.user.has_perm("wagtailadmin.access_admin")
+        or not poem.permissions_for_user(request.user).can_edit()
+    ):
+        raise PermissionDenied
+    return poem.get_latest_revision_as_object().specific
 
 
 @require_safe
@@ -128,6 +193,44 @@ def poem_social_card(request, page_id, version):
         eyebrow=f"A poem by {site_settings.author_name}",
         footer=request.get_host(),
     )
+
+
+@require_safe
+def poem_instagram_card(request, page_id, version):
+    poem = get_object_or_404(PoemPage.objects.live().public(), pk=page_id)
+    site_settings = PoetrySiteSettings.for_request(request)
+    expected_version = instagram_card_version(
+        poem.pk,
+        poem.title,
+        poem.poem_body,
+        poem.dedication,
+        site_settings.author_name,
+    )
+    if version != expected_version:
+        raise Http404
+    return _instagram_card_response(request, poem, site_settings, public=True)
+
+
+@require_safe
+@login_required(login_url="/admin/login/")
+def admin_poem_social_card_preview(request, page_id):
+    poem = _editable_poem_for_request(request, page_id)
+    site_settings = PoetrySiteSettings.for_request(request)
+    return _social_card_response(
+        title=poem.title,
+        eyebrow=f"A poem by {site_settings.author_name}",
+        footer=request.get_host(),
+        public=False,
+        download=request.GET.get("download") == "1",
+    )
+
+
+@require_safe
+@login_required(login_url="/admin/login/")
+def admin_poem_instagram_card_preview(request, page_id):
+    poem = _editable_poem_for_request(request, page_id)
+    site_settings = PoetrySiteSettings.for_request(request)
+    return _instagram_card_response(request, poem, site_settings, public=False)
 
 
 def debug_media(request, path):

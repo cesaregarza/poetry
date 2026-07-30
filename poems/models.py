@@ -11,6 +11,7 @@ from wagtail.models import Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
+from poems.panels import SocialPreviewPanel
 from poems.seo import (
     absolute_site_url,
     canonical_url,
@@ -216,6 +217,13 @@ class PoemPage(Page):
         MultiFieldPanel(
             [FieldPanel("listing_description"), FieldPanel("social_image")],
             heading="Listing and sharing",
+        ),
+        SocialPreviewPanel(
+            heading="Social previews",
+            help_text=(
+                "These images use the latest saved revision. Save the page to refresh them; "
+                "published pages also expose public, unlisted image links."
+            ),
         ),
     ]
 
