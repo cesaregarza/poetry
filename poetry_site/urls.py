@@ -18,6 +18,12 @@ SITEMAPS = {
 urlpatterns = [
     path("healthz", views.healthz, name="healthz"),
     path("readyz", views.readyz, name="readyz"),
+    path("og/site/<str:version>.png", views.site_social_card, name="site_social_card"),
+    path(
+        "og/poems/<int:page_id>/<str:version>.png",
+        views.poem_social_card,
+        name="poem_social_card",
+    ),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("collections/", views.collection_index, name="collection_index"),

@@ -11,7 +11,12 @@ from wagtail.models import Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
-from poems.seo import absolute_site_url, canonical_url, serialize_json_ld
+from poems.seo import (
+    absolute_site_url,
+    canonical_url,
+    poem_social_card_url,
+    serialize_json_ld,
+)
 
 
 @register_snippet
@@ -235,6 +240,11 @@ class PoemPage(Page):
         site_settings = PoetrySiteSettings.for_request(request)
         site_url = absolute_site_url(request)
         page_url = canonical_url(request)
+        if self.social_image_id:
+            rendition = self.social_image.get_rendition("fill-1200x630")
+            social_image_url = request.build_absolute_uri(rendition.url)
+        else:
+            social_image_url = poem_social_card_url(request, self, site_settings)
         description = (
             self.search_description
             or self.listing_description
@@ -249,6 +259,7 @@ class PoemPage(Page):
             "description": description,
             "genre": "Poetry",
             "inLanguage": "en-US",
+            "image": social_image_url,
             "author": {"@id": f"{site_url}#author"},
             "isPartOf": {"@id": f"{site_url}#website"},
         }
@@ -262,6 +273,7 @@ class PoemPage(Page):
 
         context["canonical_url"] = page_url
         context["poem_meta_description"] = description
+        context["poem_social_image_url"] = social_image_url
         context["poem_structured_data"] = serialize_json_ld(structured_data)
         return context
 

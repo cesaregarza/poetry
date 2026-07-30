@@ -1,5 +1,10 @@
 from poems.models import PoetrySiteSettings, public_collections
-from poems.seo import absolute_site_url, canonical_url, serialize_json_ld
+from poems.seo import (
+    absolute_site_url,
+    canonical_url,
+    serialize_json_ld,
+    site_social_card_url,
+)
 
 
 def public_navigation(request):
@@ -46,5 +51,6 @@ def public_navigation(request):
         "public_collections": public_collections(),
         "seo_noindex": False,
         "seo_site_url": site_url,
+        "site_social_image_url": site_social_card_url(request, site_settings),
         "site_structured_data": serialize_json_ld(structured_data),
     }
