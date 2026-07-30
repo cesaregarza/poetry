@@ -22,7 +22,7 @@
       <meta property="og:title" content="{% block og_title %}{% if page %}{{ page.title }}{% else %}{{ site_settings.site_title }}{% endif %}{% endblock %}">
       <meta property="og:description" content="{% block og_description %}{% if page and page.search_description %}{{ page.search_description }}{% else %}Poetry by {{ site_settings.author_name }}.{% endif %}{% endblock %}">
       <meta property="og:url" content="{{ canonical_url }}">
-      <meta name="twitter:card" content="{% if page.social_image or site_settings.default_social_image %}summary_large_image{% else %}summary{% endif %}">
+      <meta name="twitter:card" content="summary_large_image">
       {% block social_image %}
         {% if site_settings.default_social_image %}
           {% image site_settings.default_social_image fill-1200x630 as default_social %}
@@ -30,7 +30,15 @@
           <meta property="og:image:alt" content="{{ site_settings.default_social_image.title }}">
           <meta name="twitter:image" content="{{ default_social.full_url }}">
           <meta name="twitter:image:alt" content="{{ site_settings.default_social_image.title }}">
+        {% else %}
+          <meta property="og:image" content="{{ site_social_image_url }}">
+          <meta property="og:image:alt" content="{{ site_settings.site_title }}">
+          <meta name="twitter:image" content="{{ site_social_image_url }}">
+          <meta name="twitter:image:alt" content="{{ site_settings.site_title }}">
+          <meta property="og:image:type" content="image/png">
         {% endif %}
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
       {% endblock %}
       <script type="application/ld+json" data-schema="site">{{ site_structured_data|safe }}</script>
     {% endwith %}

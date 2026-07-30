@@ -1,7 +1,10 @@
 import json
 import re
+from io import BytesIO
+from urllib.parse import urlparse
 
 import pytest
+from PIL import Image
 
 from poems.models import Collection, PoemPage
 
@@ -16,6 +19,15 @@ def structured_data(html, schema):
     )
     assert match
     return json.loads(match.group(1))
+
+
+def meta_content(html, property_name):
+    match = re.search(
+        rf'<meta (?:property|name)="{re.escape(property_name)}" content="([^"]+)">',
+        html,
+    )
+    assert match
+    return match.group(1)
 
 
 def test_core_pages_have_descriptive_metadata_and_canonical_urls(client, site_tree):
@@ -42,6 +54,12 @@ def test_core_pages_have_descriptive_metadata_and_canonical_urls(client, site_tr
         assert f'<meta name="description" content="{description}">' in html
         assert f'<link rel="canonical" href="http://testserver{path}">' in html
         assert f'<meta property="og:url" content="http://testserver{path}">' in html
+        assert '<meta name="twitter:card" content="summary_large_image">' in html
+        assert re.search(
+            r'<meta property="og:image" '
+            r'content="http://testserver/og/site/[0-9a-f]{12}\.png">',
+            html,
+        )
         assert '<meta name="robots" content="noindex, follow">' not in html
 
 
@@ -54,6 +72,15 @@ def test_poem_metadata_and_structured_data_are_specific(client, live_poem):
     assert '<meta property="og:title" content="Small Hours — A Poem by Cesar Garza">' in html
     assert '<link rel="canonical" href="http://testserver/poems/small-hours/">' in html
     assert '<meta property="article:author" content="http://testserver/about/">' in html
+    social_image_url = meta_content(html, "og:image")
+    assert re.fullmatch(
+        rf"http://testserver/og/poems/{live_poem.pk}/[0-9a-f]{{12}}\.png",
+        social_image_url,
+    )
+    assert meta_content(html, "twitter:image") == social_image_url
+    assert '<meta property="og:image:type" content="image/png">' in html
+    assert '<meta property="og:image:width" content="1200">' in html
+    assert '<meta property="og:image:height" content="630">' in html
 
     site_schema = structured_data(html, "site")
     website, author = site_schema["@graph"]
@@ -79,6 +106,7 @@ def test_poem_metadata_and_structured_data_are_specific(client, live_poem):
     assert poem_schema["name"] == "Small Hours"
     assert poem_schema["description"] == "A poem about the attentive night."
     assert poem_schema["genre"] == "Poetry"
+    assert poem_schema["image"] == social_image_url
     assert poem_schema["author"] == {"@id": "http://testserver/#author"}
     assert poem_schema["datePublished"] == "2026-07-21"
     assert poem_schema["keywords"] == ["night"]
@@ -140,3 +168,31 @@ def test_sitemap_includes_only_public_collection_and_theme_hubs(client, site_tre
     assert '<meta name="robots" content="noindex, follow">' not in collection_index_html
     assert client.get(f"/collections/{empty_collection.slug}/").status_code == 404
     assert client.get("/themes/secret/").status_code == 404
+
+
+def test_dynamic_social_cards_are_pngs_with_long_lived_caching(client, live_poem):
+    poem_html = client.get("/poems/small-hours/").content.decode()
+    poem_card_path = urlparse(meta_content(poem_html, "og:image")).path
+    poem_card = client.get(poem_card_path)
+
+    assert poem_card.status_code == 200
+    assert poem_card["Content-Type"] == "image/png"
+    assert poem_card["Content-Disposition"] == 'inline; filename="social-card.png"'
+    assert "public" in poem_card["Cache-Control"]
+    assert "max-age=31536000" in poem_card["Cache-Control"]
+    assert "immutable" in poem_card["Cache-Control"]
+    assert Image.open(BytesIO(poem_card.content)).size == (1200, 630)
+
+    home_html = client.get("/").content.decode()
+    site_card_path = urlparse(meta_content(home_html, "og:image")).path
+    site_card = client.get(site_card_path)
+    assert site_card.status_code == 200
+    assert Image.open(BytesIO(site_card.content)).size == (1200, 630)
+
+
+def test_dynamic_social_card_does_not_expose_draft_poems(client, site_tree):
+    draft = PoemPage(title="Not Yet", slug="not-yet", poem_body="Still becoming.", live=False)
+    site_tree["poem_index"].add_child(instance=draft)
+    draft.save_revision()
+
+    assert client.get(f"/og/poems/{draft.pk}/000000000000.png").status_code == 404
