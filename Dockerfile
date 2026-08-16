@@ -17,6 +17,7 @@ COPY poetry_site ./poetry_site
 COPY poems ./poems
 COPY templates ./templates
 COPY static ./static
+COPY third_party ./third_party
 
 RUN DJANGO_DEBUG=false \
     DJANGO_SECRET_KEY=build-only-not-for-runtime \

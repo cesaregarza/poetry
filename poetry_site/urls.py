@@ -39,6 +39,11 @@ urlpatterns = [
         views.admin_poem_instagram_card_preview,
         name="admin_poem_instagram_card_preview",
     ),
+    path(
+        "admin/poems/scansion/analyze/",
+        views.admin_poem_scansion_analysis,
+        name="admin_poem_scansion_analysis",
+    ),
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
     path("collections/", views.collection_index, name="collection_index"),

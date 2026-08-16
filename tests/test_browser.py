@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from pathlib import Path
 
@@ -130,3 +131,73 @@ def test_wagtail_social_preview_panel_renders_both_formats(
         1350,
     ]
     assert page.get_by_role("link", name="Public image").count() == 2
+
+
+def test_wagtail_scansion_assistant_analyzes_and_corrects_occurrences(
+    page,
+    live_server,
+    live_poem,
+):
+    get_user_model().objects.create_superuser(
+        username="scansion-browser-admin",
+        email="scansion-browser@example.com",
+        password="safe-test-password",
+    )
+    page.goto(f"{live_server.url}/admin/login/")
+    page.get_by_label("Username").fill("scansion-browser-admin")
+    page.get_by_label("Password").fill("safe-test-password")
+    page.get_by_role("button", name="Sign in").click()
+
+    page.goto(f"{live_server.url}/admin/pages/{live_poem.pk}/edit/")
+    assert not page.get_by_text("Scansion overrides", exact=True).is_visible()
+    page.locator("#id_poem_body").fill("Shall I compare thee to a summer day")
+    page.get_by_label("Show stress assistant").check()
+    page.get_by_label("Guide").select_option("iambic_pentameter")
+
+    status = page.locator("[data-scansion-status]")
+    status.get_by_text("Dictionary stress loaded", exact=False).wait_for()
+    assert page.locator(".scansion-word").count() == 8
+    assert page.locator(".scansion-assistant__meter").is_visible()
+
+    easy_symbols = page.get_by_role("button", name="Easy − / +")
+    traditional_symbols = page.get_by_role("button", name="Traditional ˘ / ´")
+    assert easy_symbols.get_attribute("aria-pressed") == "true"
+    unstressed_i = page.get_by_label("I, syllable 1: unstressed")
+    assert unstressed_i.text_content() == "−"
+    assert unstressed_i.evaluate("control => getComputedStyle(control).backgroundColor") not in {
+        "rgba(0, 0, 0, 0)",
+        "transparent",
+    }
+
+    traditional_symbols.click()
+    assert traditional_symbols.get_attribute("aria-pressed") == "true"
+    assert page.get_by_label("I, syllable 1: unstressed").text_content() == "˘"
+    assert page.evaluate("localStorage.getItem('poetry-scansion-symbols')") == "traditional"
+    easy_symbols.click()
+
+    promoted_i = page.get_by_label("I, syllable 1: unstressed")
+    assert "scansion-syllable--mismatch" in promoted_i.get_attribute("class")
+    promoted_i.click()
+    promoted_i = page.get_by_label("I, syllable 1: stressed")
+    assert promoted_i.get_attribute("aria-pressed") == "true"
+    assert "scansion-syllable--mismatch" not in promoted_i.get_attribute("class")
+
+    saved = json.loads(page.locator("#id_scansion_overrides").input_value())
+    assert saved["occurrences"]["l0:w1:i"]["stresses"] == [True]
+
+    page.locator("#id_poem_body").fill("Quizzacious")
+    status.get_by_text("need manual syllables", exact=False).wait_for()
+    unknown_badge = page.get_by_role("img", name="Quizzacious: not in dictionary")
+    assert unknown_badge.is_visible()
+    assert unknown_badge.text_content() == "!"
+    assert not page.get_by_text("Not in dictionary", exact=True).is_visible()
+    page.get_by_label("Add a syllable to Quizzacious").click()
+    assert page.get_by_label("Quizzacious, syllable 1: unstressed").is_visible()
+
+    page.get_by_role("button", name="Save draft", exact=True).click()
+    page.wait_for_load_state("networkidle")
+    assert page.get_by_label("Show stress assistant").is_checked()
+    assert page.get_by_label("Guide").input_value() == "iambic_pentameter"
+    assert page.locator("#id_poem_body").input_value() == "Quizzacious"
+    status.get_by_text("need manual syllables", exact=False).wait_for()
+    assert page.get_by_label("Quizzacious, syllable 1: unstressed").is_visible()
