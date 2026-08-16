@@ -1,3 +1,4 @@
+from django import forms
 from django.db import models
 from django.db.models.functions import Cast, Coalesce
 from django.utils.text import slugify
@@ -11,7 +12,7 @@ from wagtail.models import Page
 from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
-from poems.panels import SocialPreviewPanel
+from poems.panels import ScansionPanel, SocialPreviewPanel
 from poems.seo import (
     absolute_site_url,
     canonical_url,
@@ -152,6 +153,10 @@ class PoemIndexPage(Page):
 
 
 class PoemPage(Page):
+    class ScansionMode(models.TextChoices):
+        GENERAL = "general", "General stress"
+        IAMBIC_PENTAMETER = "iambic_pentameter", "Iambic pentameter guide"
+
     display_date = models.DateField(
         null=True,
         blank=True,
@@ -163,6 +168,18 @@ class PoemPage(Page):
             "are preserved; HTML is always escaped."
         )
     )
+    scansion_enabled = models.BooleanField(
+        "show stress assistant",
+        default=False,
+        help_text="Show the private stress assistant while editing this poem.",
+    )
+    scansion_mode = models.CharField(
+        "guide",
+        max_length=24,
+        choices=ScansionMode.choices,
+        default=ScansionMode.GENERAL,
+    )
+    scansion_overrides = models.JSONField(default=dict, blank=True)
     dedication = models.CharField(max_length=240, blank=True)
     epigraph = models.TextField(blank=True)
     epigraph_attribution = models.CharField(max_length=240, blank=True)
@@ -200,6 +217,20 @@ class PoemPage(Page):
     content_panels = Page.content_panels + [
         FieldPanel("display_date"),
         FieldPanel("poem_body", widget=models.TextField().formfield().widget),
+        MultiFieldPanel(
+            [
+                FieldPanel("scansion_enabled"),
+                FieldPanel("scansion_mode"),
+                FieldPanel(
+                    "scansion_overrides",
+                    widget=forms.HiddenInput(),
+                    classname="scansion-overrides-field",
+                ),
+                ScansionPanel(),
+            ],
+            heading="Scansion assistant",
+            help_text="Private writing guidance only; this never appears on the public poem.",
+        ),
         FieldPanel("dedication"),
         MultiFieldPanel(
             [FieldPanel("epigraph"), FieldPanel("epigraph_attribution")],

@@ -1,0 +1,59 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/scansion-admin.css' %}">
+<div
+    class="scansion-assistant"
+    data-scansion-assistant
+    data-analysis-url="{{ scansion_analysis_url }}"
+    {% if scansion_page_id %}data-page-id="{{ scansion_page_id }}"{% endif %}
+>
+    <p class="help-block help-info">
+        Dictionary stress is a starting point, not a verdict. Choose another pronunciation or
+        adjust any occurrence without affecting the poem shown to readers.
+    </p>
+    <div class="scansion-assistant__display">
+        <div class="scansion-assistant__symbol-picker">
+            <span class="scansion-assistant__display-label" id="scansion-symbol-label">
+                Stress symbols
+            </span>
+            <div
+                class="scansion-symbol-toggle"
+                role="group"
+                aria-labelledby="scansion-symbol-label"
+            >
+                <button
+                    class="scansion-symbol-toggle__button"
+                    type="button"
+                    data-scansion-symbol-style="easy"
+                    aria-pressed="true"
+                >Easy − / +</button>
+                <button
+                    class="scansion-symbol-toggle__button"
+                    type="button"
+                    data-scansion-symbol-style="traditional"
+                    aria-pressed="false"
+                >Traditional ˘ / ´</button>
+            </div>
+        </div>
+        <div class="scansion-key" aria-label="Stress color key">
+            <span class="scansion-key__item">
+                <span
+                    class="scansion-key__symbol scansion-key__symbol--unstressed"
+                    data-scansion-key="unstressed"
+                    aria-hidden="true"
+                >−</span>
+                Unstressed
+            </span>
+            <span class="scansion-key__item">
+                <span
+                    class="scansion-key__symbol scansion-key__symbol--stressed"
+                    data-scansion-key="stressed"
+                    aria-hidden="true"
+                >+</span>
+                Stressed
+            </span>
+        </div>
+    </div>
+    <div class="scansion-assistant__status" data-scansion-status aria-live="polite"></div>
+    <div class="scansion-assistant__results" data-scansion-results hidden></div>
+</div>
+<script src="{% static 'js/scansion-admin.js' %}" defer></script>

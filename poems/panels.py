@@ -62,3 +62,14 @@ class SocialPreviewPanel(Panel):
                 )
 
             return context
+
+
+class ScansionPanel(Panel):
+    class BoundPanel(Panel.BoundPanel):
+        template_name = "poems/admin/scansion_panel.html"
+
+        def get_context_data(self, parent_context=None):
+            context = super().get_context_data(parent_context)
+            context["scansion_analysis_url"] = reverse("admin_poem_scansion_analysis")
+            context["scansion_page_id"] = self.instance.pk if self.instance else None
+            return context

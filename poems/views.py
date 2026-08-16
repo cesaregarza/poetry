@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -7,7 +9,8 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils.cache import patch_cache_control
 from django.utils.text import slugify
-from django.views.decorators.http import require_safe
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST, require_safe
 from django.views.static import serve
 
 from poems.models import (
@@ -17,6 +20,7 @@ from poems.models import (
     public_collections,
     public_themes,
 )
+from poems.scansion import MAX_POEM_LENGTH, provider
 from poems.seo import canonical_url
 from poems.social_cards import (
     InstagramCardTooLong,
@@ -172,6 +176,45 @@ def _editable_poem_for_request(request, page_id):
     ):
         raise PermissionDenied
     return poem.get_latest_revision_as_object().specific
+
+
+@require_POST
+@login_required(login_url="/admin/login/")
+@never_cache
+def admin_poem_scansion_analysis(request):
+    if not request.user.has_perm("wagtailadmin.access_admin"):
+        raise PermissionDenied
+
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Request body must be valid JSON."}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Request body must be a JSON object."}, status=400)
+
+    text = payload.get("text")
+    mode = payload.get("mode", "general")
+    page_id = payload.get("page_id")
+    if not isinstance(text, str):
+        return JsonResponse({"error": "Poem text must be a string."}, status=400)
+    if len(text) > MAX_POEM_LENGTH:
+        return JsonResponse(
+            {"error": f"Poem text cannot exceed {MAX_POEM_LENGTH:,} characters."},
+            status=413,
+        )
+    if mode not in {"general", "iambic_pentameter"}:
+        return JsonResponse({"error": "Unsupported scansion mode."}, status=400)
+    if page_id is not None:
+        try:
+            page_id = int(page_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Invalid poem page identifier."}, status=400)
+        _editable_poem_for_request(request, page_id)
+
+    response = JsonResponse(provider.analyze(text, mode=mode))
+    patch_cache_control(response, private=True, no_store=True, max_age=0)
+    response["X-Robots-Tag"] = "noindex"
+    return response
 
 
 @require_safe

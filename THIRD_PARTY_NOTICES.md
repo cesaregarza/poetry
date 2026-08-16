@@ -1,8 +1,18 @@
 # Third-party notices
 
-This file covers the vendored font binaries and test-only axe-core asset. Python
+This file covers the vendored data, font binaries, and test-only axe-core asset. Python
 package licenses remain available in their installed distributions and upstream
 projects. It is not a license grant for this repository's original source code.
+
+## CMU Pronouncing Dictionary
+
+- Asset: `third_party/cmudict/cmudict.dict`
+- Upstream: <https://github.com/cmusphinx/cmudict>
+- Snapshot: data distributed with `cmudict` 1.1.3
+- SHA-256: `81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22`
+- Purpose: private, writer-facing syllable stress suggestions; no Python wrapper is used.
+- License: Carnegie Mellon University's permissive CMUdict license; the unmodified
+  notice is in `third_party/cmudict/LICENSE`.
 
 ## Inter
 
