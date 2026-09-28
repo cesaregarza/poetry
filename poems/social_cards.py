@@ -19,6 +19,7 @@ INSTAGRAM_CARD_DESIGN_VERSION = "3"
 INSTAGRAM_BODY_MAX_SIZE = 46
 INSTAGRAM_BODY_MIN_SIZE = 24
 INSTAGRAM_CAROUSEL_MAX_SLIDES = 20
+INSTAGRAM_CAROUSEL_PREFERRED_MIN_SIZE = 32
 
 BACKGROUND = "#f5f0e7"
 INK = "#201d1b"
@@ -230,7 +231,7 @@ def _poem_text_height(lines, line_height, stanza_gap):
     return sum(stanza_gap if not line else line_height for line in lines)
 
 
-def instagram_card_layout(title, poem_body, dedication=""):
+def instagram_card_layout(title, poem_body, dedication="", *, body_top_padding=92):
     measuring_image = Image.new("RGB", (1, 1))
     draw = ImageDraw.Draw(measuring_image)
     title_size, title_lines, title_spacing, title_height = _fitted_instagram_title(draw, title)
@@ -253,7 +254,7 @@ def instagram_card_layout(title, poem_body, dedication=""):
         body_height = _poem_text_height(body_lines, line_height, stanza_gap)
         if body_height <= available_body_height:
             breathing_room = max(0, available_body_height - body_height)
-            body_top = body_top_minimum + min(92, breathing_room // 5)
+            body_top = body_top_minimum + min(body_top_padding, breathing_room // 5)
             return InstagramCardLayout(
                 title_font_size=title_size,
                 title_lines=title_lines,
@@ -314,23 +315,27 @@ def _paginate_instagram_lines(lines, available_height, line_height, stanza_gap):
 
 @lru_cache(maxsize=64)
 def instagram_carousel_layouts(title, poem_body, dedication=""):
-    """Use the existing single card when possible, otherwise paginate the full poem."""
+    """Prefer fewer slides at comfortable sizes, then the largest type that fits."""
     try:
         return (instagram_card_layout(title, poem_body, dedication),)
     except InstagramCardTooLong:
         # Invalid headers still raise here, rather than producing clipped slides.
-        template = instagram_card_layout(title, "", dedication)
+        template = instagram_card_layout(title, "", dedication, body_top_padding=0)
 
     draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     available_height = INSTAGRAM_BODY_BOTTOM - template.body_top
+    best_layouts = None
     for size in range(INSTAGRAM_BODY_MAX_SIZE, INSTAGRAM_BODY_MIN_SIZE - 1, -1):
+        # Smaller fallback type is reserved for poems exceeding the export limit.
+        if size < INSTAGRAM_CAROUSEL_PREFERRED_MIN_SIZE and best_layouts is not None:
+            break
         lines = _wrapped_poem_lines(
             draw, poem_body, _font("SourceSerif4Variable-Roman.woff2", size)
         )
-        line_height, stanza_gap = round(size * 1.34), round(size * 0.72)
+        line_height, stanza_gap = round(size * 1.25), round(size * 0.72)
         pages = _paginate_instagram_lines(lines, available_height, line_height, stanza_gap)
-        if pages:
-            return tuple(
+        if pages and (best_layouts is None or len(pages) < len(best_layouts)):
+            best_layouts = tuple(
                 replace(
                     template,
                     body_font_size=size,
@@ -341,7 +346,11 @@ def instagram_carousel_layouts(title, poem_body, dedication=""):
                 )
                 for page in pages
             )
+            if len(pages) == 2:
+                break
 
+    if best_layouts is not None:
+        return best_layouts
     raise InstagramCardTooLong(
         f"This poem exceeds {INSTAGRAM_CAROUSEL_MAX_SLIDES} slides at the minimum readable "
         "size. Split it into separate posts before exporting."

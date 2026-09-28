@@ -10,6 +10,7 @@ from poems.social_cards import (
     INSTAGRAM_BODY_MAX_SIZE,
     INSTAGRAM_BODY_MIN_SIZE,
     INSTAGRAM_CAROUSEL_MAX_SLIDES,
+    INSTAGRAM_CAROUSEL_PREFERRED_MIN_SIZE,
     InstagramCardTooLong,
     _font,
     instagram_card_layout,
@@ -34,7 +35,9 @@ def test_short_poem_keeps_original_card():
 def test_carousel_preserves_complete_stanzas_and_readable_layout():
     layouts = instagram_carousel_layouts("A Long Poem", LONG_BODY, "a friend")
     assert 1 < len(layouts) <= INSTAGRAM_CAROUSEL_MAX_SLIDES
-    assert {layout.body_font_size for layout in layouts} == {INSTAGRAM_BODY_MAX_SIZE}
+    assert len(layouts) <= 3
+    assert len({layout.body_font_size for layout in layouts}) == 1
+    assert layouts[0].body_font_size >= INSTAGRAM_CAROUSEL_PREFERRED_MIN_SIZE
     assert [line for layout in layouts for line in layout.body_lines if line] == [
         line for line in LONG_BODY.splitlines() if line
     ]
@@ -44,6 +47,19 @@ def test_carousel_preserves_complete_stanzas_and_readable_layout():
         assert layout.body_top + layout.body_height <= 1182
         assert layout.body_lines[0] and layout.body_lines[-1]
         assert layout.dedication_lines == ("for a friend",)
+
+
+def test_medium_poem_fits_two_slides_without_splitting_stanzas():
+    # Uneven stanzas should not create an extra slide just to retain oversized type.
+    body = "\n\n".join(
+        "\n".join(f"Stanza {stanza}, line {line}." for line in range(length))
+        for stanza, length in enumerate((1, 2, 4, 8, 16, 6))
+    )
+    layouts = instagram_carousel_layouts("A title of ordinary length", body)
+    assert len(layouts) == 2
+    assert layouts[0].body_font_size >= INSTAGRAM_CAROUSEL_PREFERRED_MIN_SIZE
+    for stanza in body.split("\n\n"):
+        assert any(stanza in "\n".join(layout.body_lines) for layout in layouts)
 
 
 def test_oversized_stanza_splits_without_lost_or_duplicated_lines():
@@ -74,7 +90,7 @@ def test_carousel_reduces_size_to_stay_within_slide_limit_and_never_truncates():
     assert INSTAGRAM_BODY_MIN_SIZE <= layouts[0].body_font_size < INSTAGRAM_BODY_MAX_SIZE
     assert [line for layout in layouts for line in layout.body_lines] == body.splitlines()
     with pytest.raises(InstagramCardTooLong, match="exceeds 20 slides"):
-        instagram_carousel_layouts("Too many lines", "a\n" * 800)
+        instagram_carousel_layouts("Too many lines", "a\n" * 1000)
 
 
 @pytest.mark.parametrize("title,dedication", [("W" * 200, ""), ("Title", "W" * 200)])
