@@ -61,6 +61,23 @@
         margin-top: 0.85rem;
       }
 
+      .poetry-instagram-slides {
+        max-height: 42rem;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0.25rem;
+        margin-top: 1rem;
+      }
+
+      .poetry-instagram-slide {
+        margin: 0 0 1.5rem;
+      }
+
+      .poetry-instagram-slide figcaption {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
       .poetry-social-preview-warning {
         padding: 0.85rem;
         border-inline-start: 0.25rem solid var(--w-color-critical-200);
@@ -110,8 +127,31 @@
           <p class="poetry-social-preview-meta">1080 × 1350 · full poem · site signature</p>
           {% if instagram_error %}
             <div class="poetry-social-preview-warning">
-              <strong>This poem needs a carousel.</strong>
+              <strong>Instagram export needs attention.</strong>
               <p>{{ instagram_error }}</p>
+            </div>
+          {% elif instagram_slides %}
+            <p><strong>Your carousel is ready: {{ instagram_slide_count }} slides.</strong></p>
+            <p class="poetry-social-preview-meta">Download the ZIP, then upload the numbered PNGs in order.</p>
+            <a class="button button-small" href="{{ instagram_carousel_download_url }}" download>Download carousel ZIP</a>
+            <div class="poetry-instagram-slides" role="region" aria-label="Instagram carousel slides" tabindex="0">
+              {% for slide in instagram_slides %}
+                <figure class="poetry-instagram-slide">
+                  <figcaption>Slide {{ slide.number }} of {{ instagram_slide_count }}</figcaption>
+                  <a
+                    class="poetry-social-preview-frame poetry-social-preview-frame--instagram"
+                    href="{{ slide.url }}"
+                    target="_blank"
+                    rel="noopener"
+                    aria-label="Open full-size Instagram slide {{ slide.number }}"
+                  >
+                    <img src="{{ slide.url }}" alt="Instagram slide {{ slide.number }} of {{ instagram_slide_count }} for {{ self.instance.title }}" loading="lazy" width="1080" height="1350">
+                  </a>
+                  <div class="poetry-social-preview-actions">
+                    <a class="button button-small button-secondary" href="{{ slide.url }}?download=1" download>Download slide {{ slide.number }}</a>
+                  </div>
+                </figure>
+              {% endfor %}
             </div>
           {% else %}
             <a

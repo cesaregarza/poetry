@@ -40,6 +40,16 @@ urlpatterns = [
         name="admin_poem_instagram_card_preview",
     ),
     path(
+        "admin/poems/<int:page_id>/social-preview/instagram/<int:slide_number>.png",
+        views.admin_poem_instagram_carousel,
+        name="admin_poem_instagram_carousel_slide",
+    ),
+    path(
+        "admin/poems/<int:page_id>/social-preview/instagram.zip",
+        views.admin_poem_instagram_carousel,
+        name="admin_poem_instagram_carousel_download",
+    ),
+    path(
         "admin/poems/scansion/analyze/",
         views.admin_poem_scansion_analysis,
         name="admin_poem_scansion_analysis",

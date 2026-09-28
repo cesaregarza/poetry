@@ -1,4 +1,6 @@
 import json
+from io import BytesIO
+from zipfile import ZipFile
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -25,7 +27,9 @@ from poems.seo import canonical_url
 from poems.social_cards import (
     InstagramCardTooLong,
     instagram_card_version,
+    instagram_carousel_layouts,
     render_instagram_card,
+    render_instagram_slide,
     render_social_card,
 )
 
@@ -272,6 +276,43 @@ def admin_poem_social_card_preview(request, page_id):
 def admin_poem_instagram_card_preview(request, page_id):
     poem = _editable_poem_for_request(request, page_id)
     return _instagram_card_response(request, poem, public=False)
+
+
+@require_safe
+@login_required(login_url="/admin/login/")
+@never_cache
+def admin_poem_instagram_carousel(request, page_id, slide_number=None):
+    poem = _editable_poem_for_request(request, page_id)
+    stem = slugify(poem.slug or poem.title) or f"poem-{poem.pk}"
+    args = (poem.title, poem.poem_body, poem.dedication, request.get_host())
+    try:
+        layouts = instagram_carousel_layouts(*args[:3])
+    except InstagramCardTooLong as error:
+        response = HttpResponse(str(error), status=422, content_type="text/plain; charset=utf-8")
+    else:
+        if slide_number is not None:
+            if not 1 <= slide_number <= len(layouts):
+                raise Http404
+            return _png_response(
+                render_instagram_slide(*args, slide_number),
+                filename=f"{stem}-instagram-{slide_number:02d}.png",
+                public=False,
+                download=request.GET.get("download") == "1",
+                indexable=False,
+            )
+        output = BytesIO()
+        # PNGs are already compressed; ZIP_STORED avoids recompressing every slide.
+        with ZipFile(output, "w") as archive:
+            for number in range(1, len(layouts) + 1):
+                archive.writestr(
+                    f"{stem}-instagram-{number:02d}.png",
+                    render_instagram_slide(*args, number),
+                )
+        response = HttpResponse(output.getvalue(), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="{stem}-instagram-carousel.zip"'
+    patch_cache_control(response, private=True, no_store=True, max_age=0)
+    response["X-Robots-Tag"] = "noindex, noimageindex"
+    return response
 
 
 def debug_media(request, path):

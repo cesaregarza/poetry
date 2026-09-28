@@ -54,6 +54,22 @@ vendored as WOFF2 assets; their provenance and upstream licenses are recorded in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This repository intentionally
 has no project-level open-source license.
 
+## Instagram exports
+
+In the Wagtail poem editor, **Social previews** generates images from the latest
+saved revision. Short poems retain the single 1080 × 1350 PNG. Longer poems
+automatically become numbered portrait slides using the same typography and site
+signature. Stanzas stay together when they fit; oversized stanzas continue onto
+the next slide without dropping text. The layout uses a consistent readable font
+size across the carousel, with a maximum of 20 slides. Poems that exceed that
+limit or have an unfit title/dedication show an actionable export error.
+
+Use **Download carousel ZIP** for the full set, or download individual slides.
+Extract the ZIP and select its numbered PNGs in order when creating an Instagram
+post. Save edits before downloading again. Carousel previews and ZIP downloads
+require permission to edit the poem, are never publicly cached, and do not
+publish the draft or post to Instagram.
+
 ## Production contract
 
 The image runs as UID/GID `10001`, listens on port `8000`, writes temporary

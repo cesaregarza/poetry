@@ -201,3 +201,53 @@ def test_wagtail_scansion_assistant_analyzes_and_corrects_occurrences(
     assert page.locator("#id_poem_body").input_value() == "Quizzacious"
     status.get_by_text("need manual syllables", exact=False).wait_for()
     assert page.get_by_label("Quizzacious, syllable 1: unstressed").is_visible()
+
+
+def test_wagtail_carousel_previews_and_downloads(page, live_server, live_poem, tmp_path):
+    from zipfile import ZipFile
+
+    from poems.social_cards import instagram_carousel_layouts
+    from tests.test_carousels import LONG_BODY
+
+    live_poem.poem_body = LONG_BODY
+    live_poem.save_revision()
+    count = len(instagram_carousel_layouts(live_poem.title, LONG_BODY))
+    get_user_model().objects.create_superuser(
+        username="carousel-browser-admin",
+        email="carousel-browser@example.com",
+        password="safe-test-password",
+    )
+    page.goto(f"{live_server.url}/admin/login/")
+    page.get_by_label("Username").fill("carousel-browser-admin")
+    page.get_by_label("Password").fill("safe-test-password")
+    page.get_by_role("button", name="Sign in").click()
+    page.goto(f"{live_server.url}/admin/pages/{live_poem.pk}/edit/")
+    panel = page.locator(".poetry-social-preview--instagram")
+    panel.scroll_into_view_if_needed()
+    assert panel.get_by_text(f"Your carousel is ready: {count} slides.").is_visible()
+    for number in range(1, count + 1):
+        preview = panel.get_by_alt_text(f"Instagram slide {number} of {count} for Small Hours")
+        preview.scroll_into_view_if_needed()
+        page.wait_for_function(
+            "image => image.complete && image.naturalWidth === 1080",
+            arg=preview.element_handle(),
+        )
+        assert preview.evaluate("image => [image.naturalWidth, image.naturalHeight]") == [
+            1080,
+            1350,
+        ]
+    with page.expect_download() as download_info:
+        panel.get_by_role("link", name="Download carousel ZIP").click()
+    download = download_info.value
+    assert download.suggested_filename == "small-hours-instagram-carousel.zip"
+    path = tmp_path / download.suggested_filename
+    download.save_as(path)
+    with ZipFile(path) as archive:
+        assert len(archive.namelist()) == count
+
+    with page.expect_download() as download_info:
+        panel.get_by_role("link", name="Download slide 1", exact=True).click()
+    assert download_info.value.suggested_filename == "small-hours-instagram-01.png"
+    page.set_viewport_size({"width": 390, "height": 844})
+    panel.scroll_into_view_if_needed()
+    assert panel.evaluate("element => element.scrollWidth <= element.clientWidth")
