@@ -54,6 +54,37 @@ vendored as WOFF2 assets; their provenance and upstream licenses are recorded in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This repository intentionally
 has no project-level open-source license.
 
+## Instagram exports
+
+In the Wagtail poem editor, **Social previews** generates images from the latest
+saved revision. Short poems retain the single 1080 × 1350 PNG. Longer poems
+automatically become numbered portrait slides using the same typography and site
+signature. Stanzas stay together when they fit; oversized stanzas continue onto
+the next slide without dropping text. The layout favors fewer slides at a
+comfortable text size (32–46 px), then chooses the largest type that fits that
+slide count. It uses consistent sizing and tighter leading across the carousel,
+with a maximum of 20 slides. Smaller type is reserved for poems that would
+otherwise exceed that limit. Content that still cannot fit shows an actionable
+export error.
+
+Use **Download carousel ZIP** for the full set, or download individual slides.
+Extract the ZIP and select its numbered PNGs in order when creating an Instagram
+post. Save edits before downloading again. Carousel previews and ZIP downloads
+require permission to edit the poem, are never publicly cached, and do not
+publish the draft or post to Instagram.
+
+To inspect the renderer using a saved public poem page without a database:
+
+```bash
+uv run scripts/preview_instagram_carousel.py --html /tmp/poem.html \
+  --output-dir /tmp/poem-preview --footer poetry.cegarza.com --screenshot
+```
+
+The output directory must be new. This creates numbered PNGs, a ZIP, an HTML
+preview, and (with Chromium installed) a JPEG contact sheet. The command reports
+the slide count and text size as JSON and verifies all poem characters remain in
+order. It does not fetch pages or publish changes.
+
 ## Production contract
 
 The image runs as UID/GID `10001`, listens on port `8000`, writes temporary

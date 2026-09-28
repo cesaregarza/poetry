@@ -2,7 +2,7 @@ from django.urls import reverse
 from wagtail.admin.panels import Panel
 
 from poems.seo import poem_instagram_card_url, poem_social_card_url
-from poems.social_cards import InstagramCardTooLong, instagram_card_layout
+from poems.social_cards import InstagramCardTooLong, instagram_carousel_layouts
 
 
 class SocialPreviewPanel(Panel):
@@ -32,13 +32,30 @@ class SocialPreviewPanel(Panel):
                 context["open_graph_uses_upload"] = True
 
             try:
-                instagram_card_layout(
+                layouts = instagram_carousel_layouts(
                     self.instance.title,
                     self.instance.poem_body,
                     self.instance.dedication,
                 )
             except InstagramCardTooLong as error:
                 context["instagram_error"] = str(error)
+            else:
+                if len(layouts) > 1:
+                    context["instagram_slide_count"] = len(layouts)
+                    context["instagram_slides"] = [
+                        {
+                            "number": number,
+                            "url": reverse(
+                                "admin_poem_instagram_carousel_slide",
+                                kwargs={"page_id": page_id, "slide_number": number},
+                            ),
+                        }
+                        for number in range(1, len(layouts) + 1)
+                    ]
+                    context["instagram_carousel_download_url"] = reverse(
+                        "admin_poem_instagram_carousel_download",
+                        kwargs={"page_id": page_id},
+                    )
 
             live_poem = self.panel.model.objects.live().public().filter(pk=page_id).first()
             if live_poem:
