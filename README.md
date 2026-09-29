@@ -54,6 +54,12 @@ vendored as WOFF2 assets; their provenance and upstream licenses are recorded in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This repository intentionally
 has no project-level open-source license.
 
+For the full local CI sequence, point `DATABASE_URL` at a disposable loopback
+PostgreSQL database and run `./scripts/ci_preflight.py --image-tag poetry:ci-local`.
+It requires uv, Docker, and the installed Playwright Chromium browser. The production
+image also checks that Pillow's RAQM text layout is available, so card wrapping
+matches local previews.
+
 ## Instagram exports
 
 In the Wagtail poem editor, **Social previews** generates images from the latest
