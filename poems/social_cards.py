@@ -15,7 +15,7 @@ CARD_DESIGN_VERSION = "1"
 INSTAGRAM_CARD_WIDTH = 1080
 INSTAGRAM_CARD_HEIGHT = 1350
 INSTAGRAM_CARD_SIZE = (INSTAGRAM_CARD_WIDTH, INSTAGRAM_CARD_HEIGHT)
-INSTAGRAM_CARD_DESIGN_VERSION = "3"
+INSTAGRAM_CARD_DESIGN_VERSION = "4"
 INSTAGRAM_BODY_MAX_SIZE = 46
 INSTAGRAM_BODY_MIN_SIZE = 24
 INSTAGRAM_CAROUSEL_MAX_SLIDES = 20
@@ -183,7 +183,8 @@ def _wrap_poem_line(draw, line, font):
         return [line]
 
     leading_space_count = len(line) - len(line.lstrip(" "))
-    continuation_indent = " " * min(leading_space_count, 8)
+    # A 1.25 em hanging indent distinguishes a soft wrap from an authored break.
+    continuation_indent = " " * min(leading_space_count, 8) + "\u2003\u2005"
     wrapped = []
     remainder = line
 

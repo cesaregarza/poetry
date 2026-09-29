@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load wagtailcore_tags wagtailimages_tags %}
+{% load wagtailcore_tags wagtailimages_tags poetry_tags %}
 
 {% block title %}{% if page.seo_title %}{{ page.seo_title }}{% else %}{{ page.title }} — A Poem by {{ settings.poems.PoetrySiteSettings.author_name }}{% endif %}{% endblock %}
 {% block description %}{{ poem_meta_description }}{% endblock %}
@@ -46,7 +46,7 @@
       </figure>
     {% endif %}
 
-    <div class="poem-text">{{ page.poem_body }}</div>
+    <div class="poem-text">{% for text, ending in page.poem_body|poem_lines %}<span class="poem-line">{{ text }}</span>{{ ending }}{% endfor %}</div>
 
     {% if page.notes or page.themes.all %}
       <footer class="poem-notes">

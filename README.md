@@ -67,6 +67,9 @@ with a maximum of 20 slides. Smaller type is reserved for poems that would
 otherwise exceed that limit. Content that still cannot fit shows an actionable
 export error.
 
+Wrapped continuations use a hanging indent on the poem page and Instagram cards,
+so they remain distinct from authored line breaks. Blank lines still separate stanzas.
+
 Use **Download carousel ZIP** for the full set, or download individual slides.
 Extract the ZIP and select its numbered PNGs in order when creating an Instagram
 post. Save edits before downloading again. Carousel previews and ZIP downloads

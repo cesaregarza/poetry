@@ -468,6 +468,15 @@ select {
   line-height: 1.78;
 }
 
+/* Keep authored line breaks flush left; indent only wrapped continuations. */
+.poem-line {
+  display: inline-block;
+  width: 100%;
+  vertical-align: top;
+  padding-inline-start: 1.25em;
+  text-indent: -1.25em;
+}
+
 .poem-notes {
   max-width: 44rem;
   margin-top: clamp(5rem, 10vw, 9rem);
