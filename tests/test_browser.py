@@ -251,3 +251,56 @@ def test_wagtail_carousel_previews_and_downloads(page, live_server, live_poem, t
     page.set_viewport_size({"width": 390, "height": 844})
     panel.scroll_into_view_if_needed()
     assert panel.evaluate("element => element.scrollWidth <= element.clientWidth")
+
+
+def test_poem_hanging_indent_preserves_authored_breaks_and_stanzas(page, live_server, live_poem):
+    body = (
+        "A long poetry line carries on beyond the edge of the page. " * 8
+        + "\nA separate line.\n\n  An indented line.\n"
+        + "unbroken" * 50
+    )
+    live_poem.poem_body = body
+    live_poem.save_revision().publish()
+    for width in (390, 1280):
+        page.set_viewport_size({"width": width, "height": 900})
+        page.goto(f"{live_server.url}/poems/small-hours/")
+        page.evaluate("document.fonts.ready")
+        poem = page.locator(".poem-text")
+        assert poem.text_content() == body
+        assert poem.inner_text() == body
+        geometry = poem.evaluate(r"""element => {
+            const lines = [...element.querySelectorAll('.poem-line')];
+            const rows = line => {
+                const firstCharacter = line.textContent.search(/\S/);
+                if (firstCharacter < 0) return [];
+                const range = document.createRange();
+                range.selectNodeContents(line);
+                range.setStart(line.firstChild, firstCharacter);
+                // Pre-wrapped spaces can yield another rect on the same row.
+                const rows = new Map();
+                for (const rect of range.getClientRects()) {
+                    if (rect.width > 0) {
+                        rows.set(rect.y, Math.min(rows.get(rect.y) ?? Infinity, rect.x));
+                    }
+                }
+                return [...rows].map(([y, x]) => ({x, y}));
+            };
+            const style = getComputedStyle(element);
+            return {
+                rows: lines.map(rows),
+                fontSize: parseFloat(style.fontSize),
+                lineHeight: parseFloat(style.lineHeight)
+            };
+        }""")
+        rows = geometry["rows"]
+        left = rows[0][0]["x"]
+        assert len(rows[0]) > 1
+        for continuation in rows[0][1:]:
+            assert continuation["x"] == pytest.approx(left + 1.25 * geometry["fontSize"], abs=1)
+        assert rows[1][0]["x"] == pytest.approx(left, abs=1)
+        assert rows[3][0]["x"] > left  # Authored leading spaces remain visible.
+        assert rows[3][0]["y"] - rows[1][0]["y"] == pytest.approx(2 * geometry["lineHeight"], abs=1)
+        assert rows[4][0]["x"] == pytest.approx(left, abs=1)
+        assert len(rows[4]) > 1  # Unbroken words also stay inside the page.
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    assert_wcag_clean(page)

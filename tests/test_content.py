@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
@@ -382,8 +383,10 @@ def test_exact_text_is_escaped_and_whitespace_is_preserved(client, site_tree):
     html = client.get("/poems/exact/").content.decode()
     assert "<script>" not in html
     assert "&lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt;" in html
-    assert "\r\n\r\n  café — 雨\r\n" in html
-    assert 'class="poem-text"' in html
+    poem_text = BeautifulSoup(html, "html.parser").select_one(".poem-text")
+    assert poem_text.get_text() == body.replace("\r\n", "\n")
+    assert html.count("\r\n") == body.count("\r\n")
+    assert [line.get_text() for line in poem_text.select(".poem-line")] == body.splitlines()
 
 
 def test_collection_theme_search_and_listing_filters(client, site_tree):

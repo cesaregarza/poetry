@@ -83,6 +83,23 @@ def test_carousel_wraps_long_lines_and_handles_crlf_tabs_and_blank_edges():
         assert layout.body_lines[0].strip() and layout.body_lines[-1].strip()
 
 
+@pytest.mark.parametrize("leading", ["", "  ", "\t"])
+def test_soft_wraps_are_indented_but_authored_breaks_are_preserved(leading):
+    first_line = leading + "The weather follows me wherever I go. " * 12 + "Home."
+    body = first_line + "\nA separate line.\n\n  An indented line."
+    layout = instagram_card_layout("Weather", body)
+    lines = layout.body_lines
+    assert lines[0].startswith(leading.expandtabs(4) + "The weather")
+    assert len(lines[:-3]) > 1
+    continuation_indent = leading.expandtabs(4) + "\u2003\u2005"
+    assert all(line.startswith(continuation_indent) for line in lines[1:-3])
+    assert lines[-3:] == ("A separate line.", "", "  An indented line.")
+    assert "".join(body.split()) == "".join("".join(lines).split())
+    draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    font = _font("SourceSerif4Variable-Roman.woff2", layout.body_font_size)
+    assert all(draw.textlength(line, font=font) <= 848 for line in lines)
+
+
 def test_carousel_reduces_size_to_stay_within_slide_limit_and_never_truncates():
     body = "\n".join(f"Line {number}" for number in range(400))
     layouts = instagram_carousel_layouts("Many lines", body)
