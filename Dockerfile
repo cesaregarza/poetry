@@ -41,10 +41,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Pillow's bundled RAQM engine loads FriBiDi dynamically for consistent shaping.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libfribidi0 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --gid 10001 poetry \
     && useradd --uid 10001 --gid 10001 --no-create-home --home-dir /app poetry
 
 COPY --from=builder --chown=10001:10001 /app /app
+
+RUN .venv/bin/python -c "from PIL import features; assert features.check_feature('raqm'), 'Pillow RAQM text layout is required'"
 
 USER 10001:10001
 EXPOSE 8000
